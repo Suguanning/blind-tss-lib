@@ -1,0 +1,28 @@
+syntax = "proto3";
+package binance.tsslib.ecdsa.signing;
+option go_package = "ecdsa-blind/signing";
+
+message SignRound1Message1{
+    bytes kr_point = 1;
+}
+message SignRound1Message2{
+    bytes krx_point = 1;
+    bytes pmask_inverse_point = 2;
+    bytes k_point = 3;
+    bytes verify_point = 4;
+
+}
+
+message SignRound2Message1{
+    bytes encrypt_mi = 1;
+    bytes encrypt_r = 2;
+    bytes encrypt_mi_a = 3;
+    bytes encrypt_r_a = 4;
+    bytes index = 5;
+}
+
+message SignRound2Message2{
+    bytes encrypt_s = 1;
+    bytes encrypt_s_a = 2;
+    bytes share_pont = 3;
+}

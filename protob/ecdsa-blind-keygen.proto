@@ -1,0 +1,22 @@
+syntax = "proto3";
+package binance.tsslib.ecdsa.keygen;
+option go_package = "ecdsa-blind/keygen";
+
+message KGUserShareRound1Message1{
+    bytes share = 1;
+}
+
+message KGUserShareRound1Message2{
+    bytes index = 1;
+}
+
+message KGSignerGenRound1Message1{
+    bytes request = 1;
+}
+
+message KGSignerGenRound1Message2{
+    bytes index = 1;
+    bytes share_point = 2;
+}
+//TODO : Signer shoud proof to user that he know the share
+

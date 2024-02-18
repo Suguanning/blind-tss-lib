@@ -1,0 +1,15 @@
+syntax = "proto3";
+package binance.tsslib.ecdsa.keygen;
+option go_package = "ecdsa-blind/setup";
+
+message SURound1Message1{
+    bytes prime_share = 1;
+}
+
+message SURound1Message2{
+    bytes gama_share = 1;
+}
+
+message SURound2Message1{
+    bytes prime_mask = 1;
+}
