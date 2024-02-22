@@ -32,22 +32,19 @@ func (round *round1) Start() *tss.Error {
 	round.number = 1
 	round.started = true
 	round.resetOK()
-	// ssid, err := round.getSSID()
-	// if err != nil {
-	// 	return round.WrapError(errors.New("failed to generate ssid"))
-	// }
-	// round.temp.ssid = ssid
 	Pi := round.PartyID()
 	i := Pi.Index
 	if round.isSupport {
+		pi := big.NewInt(1)
+		round.save.pi = pi
 		ids := round.Parties().IDs().Keys()
 		num := round.PartyCount()
-		threshold := round.Threshold()
-
+		//threshold := round.Threshold()
+		round.save.Ks = ids
 		shares := make(vss.Shares, num)
 		one := big.NewInt(1)
 		for i := 0; i < num; i++ {
-			shares[i] = &vss.Share{Threshold: threshold, ID: ids[i], Share: one}
+			shares[i] = &vss.Share{Threshold: 1, ID: ids[i], Share: one}
 		}
 		for j, Pj := range round.Parties().IDs() {
 			r1msg := NewSURound1Message(Pj, round.PartyID(), shares[j])
@@ -57,14 +54,13 @@ func (round *round1) Start() *tss.Error {
 			}
 			round.out <- r1msg
 		}
-
 	} else {
 		//1.获取掩盖分片pi
 		pi := common.GetRandomPositiveInt(round.PartialKeyRand(), round.EC().Params().N)
 		round.save.pi = pi
 		//2.计算pi的分片
 		ids := round.Parties().IDs().Keys()
-		_, shares, err := vss.Create(round.EC(), 2, pi, ids, round.Rand())
+		_, shares, err := vss.Create(round.EC(), 1, pi, ids, round.Rand())
 		if err != nil {
 			return round.WrapError(err, Pi)
 		}
@@ -84,7 +80,7 @@ func (round *round1) Start() *tss.Error {
 
 func (round *round1) CanAccept(msg tss.ParsedMessage) bool {
 	if _, ok := msg.Content().(*SURound1Message); ok {
-		return msg.IsBroadcast()
+		return !msg.IsBroadcast()
 	}
 	return false
 }

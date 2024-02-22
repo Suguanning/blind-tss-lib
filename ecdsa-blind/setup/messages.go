@@ -55,7 +55,7 @@ func (m *SURound1Message) ValidateBasic() bool {
 	// 	// expected len of dln proof = sizeof(int64) + len(alpha) + len(t)
 	// 	common.NonEmptyMultiBytes(m.GetDlnproof_1(), 2+(dlnproof.Iterations*2)) &&
 	// 	common.NonEmptyMultiBytes(m.GetDlnproof_2(), 2+(dlnproof.Iterations*2))
-	return false
+	return true
 }
 
 func (m *SURound1Message) UnmarshalShare() *big.Int {

@@ -84,7 +84,7 @@ func ConvertToAddingShare(ec elliptic.Curve, i, pax int, xi *big.Int, ks []*big.
 		ksj := ks[j]
 		ksi := ks[i]
 		if ksj.Cmp(ksi) == 0 {
-			panic(fmt.Errorf("index of two parties are equal"))
+			panic(fmt.Errorf("index of two parties are equal %d : %d", i, j))
 		}
 		// big.Int Div is calculated as: a/b = a * modInv(b,q)
 		coef := modQ.Mul(ks[j], modQ.ModInverse(new(big.Int).Sub(ksj, ksi)))
