@@ -34,6 +34,7 @@ func (round *round1) Start() *tss.Error {
 	round.resetOK()
 	Pi := round.PartyID()
 	i := Pi.Index
+	round.save.ShareID = round.PartyID().KeyInt()
 	if round.isSupport {
 		pi := big.NewInt(1)
 		round.save.pi = pi
@@ -41,6 +42,7 @@ func (round *round1) Start() *tss.Error {
 		num := round.PartyCount()
 		//threshold := round.Threshold()
 		round.save.Ks = ids
+		round.save.Role = "Support"
 		shares := make(vss.Shares, num)
 		one := big.NewInt(1)
 		for i := 0; i < num; i++ {
@@ -65,6 +67,7 @@ func (round *round1) Start() *tss.Error {
 			return round.WrapError(err, Pi)
 		}
 		round.save.Ks = ids
+		round.save.Role = "Signer"
 		round.temp.primeShares = shares
 		for j, Pj := range round.Parties().IDs() {
 			r1msg := NewSURound1Message(Pj, round.PartyID(), shares[j])

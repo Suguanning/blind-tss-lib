@@ -20,7 +20,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type KGUserShareRound1Message1 struct {
+type KGRound1Message struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -28,8 +28,8 @@ type KGUserShareRound1Message1 struct {
 	Share []byte `protobuf:"bytes,1,opt,name=share,proto3" json:"share,omitempty"`
 }
 
-func (x *KGUserShareRound1Message1) Reset() {
-	*x = KGUserShareRound1Message1{}
+func (x *KGRound1Message) Reset() {
+	*x = KGRound1Message{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_protob_ecdsa_blind_keygen_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -37,13 +37,13 @@ func (x *KGUserShareRound1Message1) Reset() {
 	}
 }
 
-func (x *KGUserShareRound1Message1) String() string {
+func (x *KGRound1Message) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*KGUserShareRound1Message1) ProtoMessage() {}
+func (*KGRound1Message) ProtoMessage() {}
 
-func (x *KGUserShareRound1Message1) ProtoReflect() protoreflect.Message {
+func (x *KGRound1Message) ProtoReflect() protoreflect.Message {
 	mi := &file_protob_ecdsa_blind_keygen_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -55,19 +55,19 @@ func (x *KGUserShareRound1Message1) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use KGUserShareRound1Message1.ProtoReflect.Descriptor instead.
-func (*KGUserShareRound1Message1) Descriptor() ([]byte, []int) {
+// Deprecated: Use KGRound1Message.ProtoReflect.Descriptor instead.
+func (*KGRound1Message) Descriptor() ([]byte, []int) {
 	return file_protob_ecdsa_blind_keygen_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *KGUserShareRound1Message1) GetShare() []byte {
+func (x *KGRound1Message) GetShare() []byte {
 	if x != nil {
 		return x.Share
 	}
 	return nil
 }
 
-type KGUserShareRound1Message2 struct {
+type KGRound2Message struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -75,8 +75,8 @@ type KGUserShareRound1Message2 struct {
 	Index []byte `protobuf:"bytes,1,opt,name=index,proto3" json:"index,omitempty"`
 }
 
-func (x *KGUserShareRound1Message2) Reset() {
-	*x = KGUserShareRound1Message2{}
+func (x *KGRound2Message) Reset() {
+	*x = KGRound2Message{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_protob_ecdsa_blind_keygen_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -84,13 +84,13 @@ func (x *KGUserShareRound1Message2) Reset() {
 	}
 }
 
-func (x *KGUserShareRound1Message2) String() string {
+func (x *KGRound2Message) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*KGUserShareRound1Message2) ProtoMessage() {}
+func (*KGRound2Message) ProtoMessage() {}
 
-func (x *KGUserShareRound1Message2) ProtoReflect() protoreflect.Message {
+func (x *KGRound2Message) ProtoReflect() protoreflect.Message {
 	mi := &file_protob_ecdsa_blind_keygen_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -102,116 +102,14 @@ func (x *KGUserShareRound1Message2) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use KGUserShareRound1Message2.ProtoReflect.Descriptor instead.
-func (*KGUserShareRound1Message2) Descriptor() ([]byte, []int) {
+// Deprecated: Use KGRound2Message.ProtoReflect.Descriptor instead.
+func (*KGRound2Message) Descriptor() ([]byte, []int) {
 	return file_protob_ecdsa_blind_keygen_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *KGUserShareRound1Message2) GetIndex() []byte {
+func (x *KGRound2Message) GetIndex() []byte {
 	if x != nil {
 		return x.Index
-	}
-	return nil
-}
-
-type KGSignerGenRound1Message1 struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Request []byte `protobuf:"bytes,1,opt,name=request,proto3" json:"request,omitempty"`
-}
-
-func (x *KGSignerGenRound1Message1) Reset() {
-	*x = KGSignerGenRound1Message1{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_protob_ecdsa_blind_keygen_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *KGSignerGenRound1Message1) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*KGSignerGenRound1Message1) ProtoMessage() {}
-
-func (x *KGSignerGenRound1Message1) ProtoReflect() protoreflect.Message {
-	mi := &file_protob_ecdsa_blind_keygen_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use KGSignerGenRound1Message1.ProtoReflect.Descriptor instead.
-func (*KGSignerGenRound1Message1) Descriptor() ([]byte, []int) {
-	return file_protob_ecdsa_blind_keygen_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *KGSignerGenRound1Message1) GetRequest() []byte {
-	if x != nil {
-		return x.Request
-	}
-	return nil
-}
-
-type KGSignerGenRound1Message2 struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Index      []byte `protobuf:"bytes,1,opt,name=index,proto3" json:"index,omitempty"`
-	SharePoint []byte `protobuf:"bytes,2,opt,name=share_point,json=sharePoint,proto3" json:"share_point,omitempty"`
-}
-
-func (x *KGSignerGenRound1Message2) Reset() {
-	*x = KGSignerGenRound1Message2{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_protob_ecdsa_blind_keygen_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *KGSignerGenRound1Message2) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*KGSignerGenRound1Message2) ProtoMessage() {}
-
-func (x *KGSignerGenRound1Message2) ProtoReflect() protoreflect.Message {
-	mi := &file_protob_ecdsa_blind_keygen_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use KGSignerGenRound1Message2.ProtoReflect.Descriptor instead.
-func (*KGSignerGenRound1Message2) Descriptor() ([]byte, []int) {
-	return file_protob_ecdsa_blind_keygen_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *KGSignerGenRound1Message2) GetIndex() []byte {
-	if x != nil {
-		return x.Index
-	}
-	return nil
-}
-
-func (x *KGSignerGenRound1Message2) GetSharePoint() []byte {
-	if x != nil {
-		return x.SharePoint
 	}
 	return nil
 }
@@ -222,24 +120,14 @@ var file_protob_ecdsa_blind_keygen_proto_rawDesc = []byte{
 	0x0a, 0x1f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x2f, 0x65, 0x63, 0x64, 0x73, 0x61, 0x2d, 0x62,
 	0x6c, 0x69, 0x6e, 0x64, 0x2d, 0x6b, 0x65, 0x79, 0x67, 0x65, 0x6e, 0x2e, 0x70, 0x72, 0x6f, 0x74,
 	0x6f, 0x12, 0x1b, 0x62, 0x69, 0x6e, 0x61, 0x6e, 0x63, 0x65, 0x2e, 0x74, 0x73, 0x73, 0x6c, 0x69,
-	0x62, 0x2e, 0x65, 0x63, 0x64, 0x73, 0x61, 0x2e, 0x6b, 0x65, 0x79, 0x67, 0x65, 0x6e, 0x22, 0x31,
-	0x0a, 0x19, 0x4b, 0x47, 0x55, 0x73, 0x65, 0x72, 0x53, 0x68, 0x61, 0x72, 0x65, 0x52, 0x6f, 0x75,
-	0x6e, 0x64, 0x31, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x31, 0x12, 0x14, 0x0a, 0x05, 0x73,
-	0x68, 0x61, 0x72, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x05, 0x73, 0x68, 0x61, 0x72,
-	0x65, 0x22, 0x31, 0x0a, 0x19, 0x4b, 0x47, 0x55, 0x73, 0x65, 0x72, 0x53, 0x68, 0x61, 0x72, 0x65,
-	0x52, 0x6f, 0x75, 0x6e, 0x64, 0x31, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x32, 0x12, 0x14,
-	0x0a, 0x05, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x05, 0x69,
-	0x6e, 0x64, 0x65, 0x78, 0x22, 0x35, 0x0a, 0x19, 0x4b, 0x47, 0x53, 0x69, 0x67, 0x6e, 0x65, 0x72,
-	0x47, 0x65, 0x6e, 0x52, 0x6f, 0x75, 0x6e, 0x64, 0x31, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65,
-	0x31, 0x12, 0x18, 0x0a, 0x07, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x18, 0x01, 0x20, 0x01,
-	0x28, 0x0c, 0x52, 0x07, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x52, 0x0a, 0x19, 0x4b,
-	0x47, 0x53, 0x69, 0x67, 0x6e, 0x65, 0x72, 0x47, 0x65, 0x6e, 0x52, 0x6f, 0x75, 0x6e, 0x64, 0x31,
-	0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x32, 0x12, 0x14, 0x0a, 0x05, 0x69, 0x6e, 0x64, 0x65,
-	0x78, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x05, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x12, 0x1f,
-	0x0a, 0x0b, 0x73, 0x68, 0x61, 0x72, 0x65, 0x5f, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x18, 0x02, 0x20,
-	0x01, 0x28, 0x0c, 0x52, 0x0a, 0x73, 0x68, 0x61, 0x72, 0x65, 0x50, 0x6f, 0x69, 0x6e, 0x74, 0x42,
-	0x14, 0x5a, 0x12, 0x65, 0x63, 0x64, 0x73, 0x61, 0x2d, 0x62, 0x6c, 0x69, 0x6e, 0x64, 0x2f, 0x6b,
-	0x65, 0x79, 0x67, 0x65, 0x6e, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x62, 0x2e, 0x65, 0x63, 0x64, 0x73, 0x61, 0x2e, 0x6b, 0x65, 0x79, 0x67, 0x65, 0x6e, 0x22, 0x27,
+	0x0a, 0x0f, 0x4b, 0x47, 0x52, 0x6f, 0x75, 0x6e, 0x64, 0x31, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67,
+	0x65, 0x12, 0x14, 0x0a, 0x05, 0x73, 0x68, 0x61, 0x72, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c,
+	0x52, 0x05, 0x73, 0x68, 0x61, 0x72, 0x65, 0x22, 0x27, 0x0a, 0x0f, 0x4b, 0x47, 0x52, 0x6f, 0x75,
+	0x6e, 0x64, 0x32, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x69, 0x6e,
+	0x64, 0x65, 0x78, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x05, 0x69, 0x6e, 0x64, 0x65, 0x78,
+	0x42, 0x14, 0x5a, 0x12, 0x65, 0x63, 0x64, 0x73, 0x61, 0x2d, 0x62, 0x6c, 0x69, 0x6e, 0x64, 0x2f,
+	0x6b, 0x65, 0x79, 0x67, 0x65, 0x6e, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -254,12 +142,10 @@ func file_protob_ecdsa_blind_keygen_proto_rawDescGZIP() []byte {
 	return file_protob_ecdsa_blind_keygen_proto_rawDescData
 }
 
-var file_protob_ecdsa_blind_keygen_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_protob_ecdsa_blind_keygen_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_protob_ecdsa_blind_keygen_proto_goTypes = []interface{}{
-	(*KGUserShareRound1Message1)(nil), // 0: binance.tsslib.ecdsa.keygen.KGUserShareRound1Message1
-	(*KGUserShareRound1Message2)(nil), // 1: binance.tsslib.ecdsa.keygen.KGUserShareRound1Message2
-	(*KGSignerGenRound1Message1)(nil), // 2: binance.tsslib.ecdsa.keygen.KGSignerGenRound1Message1
-	(*KGSignerGenRound1Message2)(nil), // 3: binance.tsslib.ecdsa.keygen.KGSignerGenRound1Message2
+	(*KGRound1Message)(nil), // 0: binance.tsslib.ecdsa.keygen.KGRound1Message
+	(*KGRound2Message)(nil), // 1: binance.tsslib.ecdsa.keygen.KGRound2Message
 }
 var file_protob_ecdsa_blind_keygen_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -276,7 +162,7 @@ func file_protob_ecdsa_blind_keygen_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_protob_ecdsa_blind_keygen_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*KGUserShareRound1Message1); i {
+			switch v := v.(*KGRound1Message); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -288,31 +174,7 @@ func file_protob_ecdsa_blind_keygen_proto_init() {
 			}
 		}
 		file_protob_ecdsa_blind_keygen_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*KGUserShareRound1Message2); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_protob_ecdsa_blind_keygen_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*KGSignerGenRound1Message1); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_protob_ecdsa_blind_keygen_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*KGSignerGenRound1Message2); i {
+			switch v := v.(*KGRound2Message); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -330,7 +192,7 @@ func file_protob_ecdsa_blind_keygen_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_protob_ecdsa_blind_keygen_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

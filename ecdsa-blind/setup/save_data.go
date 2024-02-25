@@ -29,7 +29,9 @@ type (
 		// secret fields (not shared, but stored locally)
 		Xi, ShareID *big.Int // xi, kj
 		//blind-ecdsa
-		pi *big.Int
+		pi      *big.Int
+		Index   []byte
+		Indexes []*IndexesWithPartyID
 	}
 
 	// Everything in LocalPartySaveData is saved locally to user's HD when done
@@ -51,6 +53,12 @@ type (
 		ECDSAPub *crypto.ECPoint // y
 		//blind-ecdsa
 		PrimeMask *big.Int
+		Role      string
+	}
+
+	IndexesWithPartyID struct {
+		Index   []byte
+		PartyID tss.PartyID
 	}
 )
 
@@ -60,6 +68,7 @@ func NewLocalPartySaveData(partyCount int) (saveData LocalPartySaveData) {
 	saveData.H1j, saveData.H2j = make([]*big.Int, partyCount), make([]*big.Int, partyCount)
 	saveData.BigXj = make([]*crypto.ECPoint, partyCount)
 	saveData.PaillierPKs = make([]*paillier.PublicKey, partyCount)
+	saveData.Indexes = make([]*IndexesWithPartyID, partyCount)
 	return
 }
 

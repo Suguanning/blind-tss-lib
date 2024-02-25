@@ -3,13 +3,16 @@ package setup
 
 import (
 	"crypto/rand"
+	"encoding/json"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/bnb-chain/tss-lib/v2/common"
 	"github.com/bnb-chain/tss-lib/v2/crypto/vss"
 	"github.com/bnb-chain/tss-lib/v2/test"
 	"github.com/bnb-chain/tss-lib/v2/tss"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -174,7 +177,12 @@ func TestLocalParty(t *testing.T) {
 				//go updater(localParties[dest[0].Index], msg, errCh)
 			}
 		case save := <-endCh:
-
+			if save.Role == "Support" {
+				save.Role = "Recipient"
+			}
+			index, err := save.OriginalIndex()
+			assert.NoErrorf(t, err, "should not be an error getting a party's index from save data")
+			tryWriteTestFixtureFile(t, index, *save)
 			t.Log("\n当前节点pi:", save.pi, "\n当前节点计算结果p:", save.PrimeMask)
 			pMul = modQ.Mul(pMul, save.pi)
 			result = save.PrimeMask
@@ -195,4 +203,30 @@ func TestLocalParty(t *testing.T) {
 		}
 	}
 
+}
+
+func tryWriteTestFixtureFile(t *testing.T, index int, data LocalPartySaveData) {
+	fixtureFileName := MakeTestFixtureFilePath(index)
+
+	// fixture file does not already exist?
+	// if it does, we won't re-create it here
+	fi, err := os.Stat(fixtureFileName)
+	if !(err == nil && fi != nil && !fi.IsDir()) {
+		fd, err := os.OpenFile(fixtureFileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+		if err != nil {
+			assert.NoErrorf(t, err, "unable to open fixture file %s for writing", fixtureFileName)
+		}
+		bz, err := json.Marshal(&data)
+		if err != nil {
+			t.Fatalf("unable to marshal save data for fixture file %s", fixtureFileName)
+		}
+		_, err = fd.Write(bz)
+		if err != nil {
+			t.Fatalf("unable to write to fixture file %s", fixtureFileName)
+		}
+		t.Logf("Saved a test fixture file for party %d: %s", index, fixtureFileName)
+	} else {
+		t.Logf("Fixture file already exists for party %d; not re-creating: %s", index, fixtureFileName)
+	}
+	//
 }
