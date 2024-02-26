@@ -183,8 +183,8 @@ func TestLocalParty(t *testing.T) {
 			index, err := save.OriginalIndex()
 			assert.NoErrorf(t, err, "should not be an error getting a party's index from save data")
 			tryWriteTestFixtureFile(t, index, *save)
-			t.Log("\n当前节点pi:", save.pi, "\n当前节点计算结果p:", save.PrimeMask)
-			pMul = modQ.Mul(pMul, save.pi)
+			t.Log("\n当前节点pi:", save.Pi, "\n当前节点计算结果p:", save.PrimeMask)
+			pMul = modQ.Mul(pMul, save.Pi)
 			result = save.PrimeMask
 			resultCnt++
 			if resultCnt == 4 {

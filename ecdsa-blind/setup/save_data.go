@@ -29,7 +29,7 @@ type (
 		// secret fields (not shared, but stored locally)
 		Xi, ShareID *big.Int // xi, kj
 		//blind-ecdsa
-		pi      *big.Int
+		Pi      *big.Int
 		Index   []byte
 		Indexes []*IndexesWithPartyID
 	}
@@ -52,8 +52,9 @@ type (
 		// used for test assertions (may be discarded)
 		ECDSAPub *crypto.ECPoint // y
 		//blind-ecdsa
-		PrimeMask *big.Int
-		Role      string
+		RecipientPaillierSK []*paillier.PrivateKey
+		PrimeMask           *big.Int
+		Role                string
 	}
 
 	IndexesWithPartyID struct {
@@ -62,13 +63,14 @@ type (
 	}
 )
 
-func NewLocalPartySaveData(partyCount int) (saveData LocalPartySaveData) {
+func NewLocalPartySaveData(threshold, partyCount int) (saveData LocalPartySaveData) {
 	saveData.Ks = make([]*big.Int, partyCount)
 	saveData.NTildej = make([]*big.Int, partyCount)
 	saveData.H1j, saveData.H2j = make([]*big.Int, partyCount), make([]*big.Int, partyCount)
 	saveData.BigXj = make([]*crypto.ECPoint, partyCount)
 	saveData.PaillierPKs = make([]*paillier.PublicKey, partyCount)
 	saveData.Indexes = make([]*IndexesWithPartyID, partyCount)
+	saveData.RecipientPaillierSK = make([]*paillier.PrivateKey, threshold+1)
 	return
 }
 
@@ -88,6 +90,14 @@ func (preParams LocalPreParams) ValidateWithProof() bool {
 		preParams.P != nil &&
 		preParams.Q != nil
 }
+func (saveData LocalPartySaveData) ValidateRecipientPaillier() bool {
+	for _, sk := range saveData.RecipientPaillierSK {
+		if sk == nil {
+			return false
+		}
+	}
+	return true
+}
 
 // BuildLocalSaveDataSubset re-creates the LocalPartySaveData to contain data for only the list of signing parties.
 func BuildLocalSaveDataSubset(sourceData LocalPartySaveData, sortedIDs tss.SortedPartyIDs) LocalPartySaveData {
@@ -95,7 +105,7 @@ func BuildLocalSaveDataSubset(sourceData LocalPartySaveData, sortedIDs tss.Sorte
 	for j, kj := range sourceData.Ks {
 		keysToIndices[hex.EncodeToString(kj.Bytes())] = j
 	}
-	newData := NewLocalPartySaveData(sortedIDs.Len())
+	newData := NewLocalPartySaveData(sortedIDs.Len()/2, sortedIDs.Len())
 	newData.LocalPreParams = sourceData.LocalPreParams
 	newData.LocalSecrets = sourceData.LocalSecrets
 	newData.ECDSAPub = sourceData.ECDSAPub

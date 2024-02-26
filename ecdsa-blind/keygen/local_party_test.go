@@ -87,7 +87,7 @@ func TestLocalParty(t *testing.T) {
 			assert.NoErrorf(t, err, "should not be an error getting a party's index from save data")
 			tryWriteTestFixtureFile(t, index, *save)
 			saveCnt++
-			fmt.Print("节点", saveCnt, " 私钥分片：", save.LocalSecrets.Xi, "\n")
+			fmt.Print(save.Role, "节点", saveCnt, " 私钥分片：", save.LocalSecrets.Xi, "\n")
 			if saveCnt == 4 {
 				return
 			}
@@ -112,7 +112,7 @@ func tryWriteTestFixtureFile(t *testing.T, index int, data setup.LocalPartySaveD
 		if err != nil {
 			t.Fatalf("unable to write to fixture file %s", fixtureFileName)
 		}
-		t.Logf("Saved a test fixture file for party %d: %s", index, fixtureFileName)
+		//t.Logf("Saved a test fixture file for party %d: %s", index, fixtureFileName)
 	} else {
 		t.Logf("Fixture file already exists for party %d; not re-creating: %s", index, fixtureFileName)
 	}

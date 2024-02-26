@@ -37,7 +37,7 @@ func (round *round1) Start() *tss.Error {
 	round.save.ShareID = round.PartyID().KeyInt()
 	if round.isSupport {
 		pi := big.NewInt(1)
-		round.save.pi = pi
+		round.save.Pi = pi
 		ids := round.Parties().IDs().Keys()
 		num := round.PartyCount()
 		//threshold := round.Threshold()
@@ -59,7 +59,7 @@ func (round *round1) Start() *tss.Error {
 	} else {
 		//1.获取掩盖分片pi
 		pi := common.GetRandomPositiveInt(round.PartialKeyRand(), round.EC().Params().N)
-		round.save.pi = pi
+		round.save.Pi = pi
 		//2.计算pi的分片
 		ids := round.Parties().IDs().Keys()
 		_, shares, err := vss.Create(round.EC(), 1, pi, ids, round.Rand())

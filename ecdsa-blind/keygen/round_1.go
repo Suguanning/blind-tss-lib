@@ -7,6 +7,7 @@
 package keygen
 
 import (
+	"context"
 	"errors"
 
 	"github.com/bnb-chain/tss-lib/v2/common"
@@ -43,7 +44,19 @@ func (round *round1) Start() *tss.Error {
 		for j := range round.Parties().IDs() {
 			round.ok[j] = true
 		}
-
+		//1、检查有无Paillier方案，如果没有，生成t个Paillier方案
+		if !round.save.ValidateRecipientPaillier() {
+			for j := range round.save.RecipientPaillierSK {
+				ctx, cancel := context.WithTimeout(context.Background(), round.SafePrimeGenTimeout())
+				defer cancel()
+				preParams, err := GeneratePreParamsWithContextAndRandom(ctx, round.Rand(), round.Concurrency())
+				if err != nil {
+					return round.WrapError(errors.New("pre-params generation failed"), Pi)
+				}
+				round.save.RecipientPaillierSK[j] = preParams.PaillierSK
+			}
+		}
+		//2、生成私钥并分享
 		if round.save.LocalSecrets.Xi == nil {
 			x := common.GetRandomPositiveInt(round.Rand(), round.EC().Params().N)
 			round.save.LocalSecrets.Xi = x

@@ -3,26 +3,37 @@ package binance.tsslib.ecdsa.signing;
 option go_package = "ecdsa-blind/signing";
 
 message SignRound1Message1{
-    bytes kr_point = 1;
+    bytes BigKr_x = 1;
+    bytes BigKr_y = 2;
 }
 message SignRound1Message2{
-    bytes krx_point = 1;
-    bytes pmask_inverse_point = 2;
-    bytes k_point = 3;
-    bytes verify_point = 4;
-
+    bytes BigKrx_x = 1;
+    bytes BigKrx_y = 2;
+    bytes BigPi__x = 3;
+    bytes BigPi__y = 4;
+    bytes BigKi_x = 5;
+    bytes BigKi_y = 6;
+    bytes BigVi_x = 7;
+    bytes BigVi_y = 8;
 }
 
-message SignRound2Message1{
-    bytes encrypt_mi = 1;
-    bytes encrypt_r = 2;
-    bytes encrypt_mi_a = 3;
-    bytes encrypt_r_a = 4;
-    bytes index = 5;
+message SignRound2Message{
+    bytes Cmi = 1;
+    bytes Cr = 2;
+    bytes Cmi_a = 3;
+    bytes Cr_a = 4;
+    bytes Mod = 5;
+    bytes index = 6;
 }
 
-message SignRound2Message2{
-    bytes encrypt_s = 1;
-    bytes encrypt_s_a = 2;
-    bytes share_pont = 3;
+message SignRound3Message1{
+    bytes Ci = 1;
+    bytes Ci_a = 2;
+    bytes bigXi = 3;
+}
+
+message SignRound3Message2{
+    bytes Ci = 1;
+    bytes Ci_a = 2;
+    bytes Mod = 5;
 }

@@ -4,14 +4,17 @@
 // terms governing use, modification, and redistribution, is contained in the
 // file LICENSE at the root of the source code distribution tree.
 
-package setup
+package signing
 
 import (
-	"errors"
+	//"fmt"
+
 	"fmt"
+	"math/big"
 
 	"github.com/bnb-chain/tss-lib/v2/common"
-	"github.com/bnb-chain/tss-lib/v2/crypto/vss"
+	"github.com/bnb-chain/tss-lib/v2/crypto"
+	"github.com/bnb-chain/tss-lib/v2/ecdsa-blind/setup"
 	"github.com/bnb-chain/tss-lib/v2/tss"
 )
 
@@ -25,58 +28,77 @@ var (
 type (
 	LocalParty struct {
 		*tss.BaseParty
-		params    *tss.Parameters
-		isSupport bool
-		temp      localTempData
-		data      LocalPartySaveData
+		params         *tss.Parameters
+		isRecipient    bool
+		recipientIndex int
+		temp           localTempData
+		data           setup.LocalPartySaveData
 
 		// outbound messaging
 		out chan<- tss.Message
-		end chan<- *LocalPartySaveData
+		end chan<- *setup.LocalPartySaveData
 	}
 
 	localMessageStore struct {
-		suRound1Messages,
-		suRound2Messages,
-		suRound3Messages []tss.ParsedMessage
+		signRound1Messages1,
+		signRound1Messages2,
+		signRound2Messages,
+		signRound3Messages1,
+		signRound3Messages2 []tss.ParsedMessage
 	}
 
 	localTempData struct {
 		localMessageStore
-		//blind-ecdsa
-		primeShares vss.Shares
+		//share variable
+		Ki *big.Int
+		//Recipient
+		DataPhase1  []VerifyDataPhase1
+		SentIndexes []bool
+		//Signer
+
+	}
+	VerifyDataPhase1 struct {
+		BigKri,
+		BigPi_,
+		BigKi,
+		BigVi *crypto.ECPoint
 	}
 )
 
 // Exported, used in `tss` client
 func NewLocalParty(
 	params *tss.Parameters,
-	isSupport bool,
+	isRecipient bool,
+	recipientIndex int,
+	localData *setup.LocalPartySaveData,
 	out chan<- tss.Message,
-	end chan<- *LocalPartySaveData,
+	end chan<- *setup.LocalPartySaveData,
 ) tss.Party {
 	//获取当前参与人数
 	partyCount := params.PartyCount()
-	//为其他签名者申请的中间数据内存空间
-	data := NewLocalPartySaveData(params.Threshold(), partyCount)
+
 	p := &LocalParty{
-		BaseParty: new(tss.BaseParty),
-		params:    params,
-		isSupport: isSupport,
-		temp:      localTempData{},
-		data:      data,
-		out:       out,
-		end:       end,
+		BaseParty:      new(tss.BaseParty),
+		params:         params,
+		isRecipient:    isRecipient,
+		recipientIndex: recipientIndex,
+		temp:           localTempData{},
+		data:           *localData,
+		out:            out,
+		end:            end,
 	}
 	// msgs init
-	p.temp.suRound1Messages = make([]tss.ParsedMessage, partyCount)
-	p.temp.suRound2Messages = make([]tss.ParsedMessage, partyCount)
-	p.temp.suRound3Messages = make([]tss.ParsedMessage, partyCount)
+	p.temp.signRound1Messages1 = make([]tss.ParsedMessage, partyCount)
+	p.temp.signRound1Messages2 = make([]tss.ParsedMessage, partyCount)
+	p.temp.signRound2Messages = make([]tss.ParsedMessage, partyCount)
+	p.temp.signRound3Messages1 = make([]tss.ParsedMessage, partyCount)
+	p.temp.signRound3Messages2 = make([]tss.ParsedMessage, partyCount)
+
 	return p
 }
 
 func (p *LocalParty) FirstRound() tss.Round {
-	return newRound1(p.params, &p.data, &p.temp, p.isSupport, p.out, p.end)
+	return newRound1(p.params, &p.data, &p.temp, p.isRecipient, p.recipientIndex, p.out, p.end)
 }
 
 func (p *LocalParty) Start() *tss.Error {
@@ -117,34 +139,22 @@ func (p *LocalParty) StoreMessage(msg tss.ParsedMessage) (bool, *tss.Error) {
 	// switch/case is necessary to store any messages beyond current round
 	// this does not handle message replays. we expect the caller to apply replay and spoofing protection.
 	switch msg.Content().(type) {
-	case *SURound1Message:
-		p.temp.suRound1Messages[fromPIdx] = msg
-	case *SURound2Message:
-		p.temp.suRound2Messages[fromPIdx] = msg
-	case *SURound3Message:
-		p.temp.suRound2Messages[fromPIdx] = msg
+	case *SignRound1Message1:
+		p.temp.signRound1Messages1[fromPIdx] = msg
+	case *SignRound1Message2:
+		p.temp.signRound1Messages2[fromPIdx] = msg
+	case *SignRound2Message:
+		p.temp.signRound2Messages[fromPIdx] = msg
+	case *SignRound3Message1:
+		p.temp.signRound3Messages1[fromPIdx] = msg
+	case *SignRound3Message2:
+		p.temp.signRound3Messages2[fromPIdx] = msg
+
 	default: // unrecognised message, just ignore!
 		common.Logger.Warningf("unrecognised message ignored: %v", msg)
 		return false, nil
 	}
 	return true, nil
-}
-
-// recovers a party's original index in the set of parties during keygen
-func (save LocalPartySaveData) OriginalIndex() (int, error) {
-	index := -1
-	ki := save.ShareID
-	for j, kj := range save.Ks {
-		if kj.Cmp(ki) != 0 {
-			continue
-		}
-		index = j
-		break
-	}
-	if index < 0 {
-		return -1, errors.New("a party index could not be recovered from Ks")
-	}
-	return index, nil
 }
 
 func (p *LocalParty) PartyID() *tss.PartyID {
