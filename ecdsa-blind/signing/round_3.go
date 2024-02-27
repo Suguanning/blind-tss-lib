@@ -27,7 +27,7 @@ func (round *round3) Start() *tss.Error {
 func (round *round3) Update() (bool, *tss.Error) {
 	ret := true
 
-	for j, msg := range round.temp.signRound3Messages1 {
+	for j, msg := range round.temp.signRound3Messages {
 		if round.ok[j] {
 			continue
 		}
@@ -38,24 +38,14 @@ func (round *round3) Update() (bool, *tss.Error) {
 		round.ok[j] = true
 	}
 
-	for j, msg := range round.temp.signRound3Messages2 {
-		if round.ok[j] {
-			continue
-		}
-		if msg == nil || !round.CanAccept(msg) {
-			ret = false
-			continue
-		}
-		round.ok[j] = true
-	}
 	return ret, nil
 }
 
 func (round *round3) CanAccept(msg tss.ParsedMessage) bool {
-	if _, ok := msg.Content().(*SignRound3Message1); ok {
+	if _, ok := msg.Content().(*SignRound3Message); ok {
 		return msg.IsBroadcast()
 	}
-	if _, ok := msg.Content().(*SignRound3Message2); ok {
+	if _, ok := msg.Content().(*SignRound3Message); ok {
 		return msg.IsBroadcast()
 	}
 	return false

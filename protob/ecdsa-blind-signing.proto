@@ -17,23 +17,24 @@ message SignRound1Message2{
     bytes BigVi_y = 8;
 }
 
-message SignRound2Message{
+message SignRound2Message1{
     bytes Cmi = 1;
     bytes Cr = 2;
     bytes Cmi_a = 3;
     bytes Cr_a = 4;
-    bytes Mod = 5;
+    bytes N = 5;
     bytes index = 6;
 }
 
-message SignRound3Message1{
+message SignRound2Message2{
     bytes Ci = 1;
     bytes Ci_a = 2;
-    bytes bigXi = 3;
+    bytes bigXi_x = 3;
+    bytes bigXi_y = 4;
 }
 
-message SignRound3Message2{
+message SignRound3Message{
     bytes Ci = 1;
     bytes Ci_a = 2;
-    bytes Mod = 5;
+    bytes N = 3;
 }

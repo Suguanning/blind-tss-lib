@@ -35,6 +35,7 @@ func (round *round1) Start() *tss.Error {
 	round.resetOK()
 	//Recipient行为
 	if round.isRecipient {
+		round.ok[round.recipientIndex] = true
 		kr := common.GetRandomPositiveInt(round.PartialKeyRand(), round.EC().Params().N)
 		round.temp.Ki = kr
 		BigKr := crypto.ScalarBaseMult(round.EC(), kr)
@@ -97,7 +98,6 @@ func (round *round1) Update() (bool, *tss.Error) {
 		//Signer接收处理消息
 		if !round.isRecipient {
 			modQ := common.ModInt(round.Params().EC().Params().N)
-			msg := round.temp.localMessageStore.signRound1Messages1[j]
 			r1msg := msg.Content().(*SignRound1Message1)
 			BigKri, err := r1msg.UnmarshalBigKr(round.Params().EC())
 			if err != nil {
@@ -111,10 +111,9 @@ func (round *round1) Update() (bool, *tss.Error) {
 			BigKi := crypto.ScalarBaseMult(round.EC(), Ki)
 			Vi := Pi_.Mul(Pi_, Ki)
 			BigVi := crypto.ScalarBaseMult(round.EC(), Vi)
-			r2msg := NewSignRound1Message2(round.PartyID(), round.Parties().IDs()[j], BigKrX, BigKi, BigPi_, BigVi)
-			round.out <- r2msg
+			r2msg2 := NewSignRound1Message2(round.PartyID(), round.Parties().IDs()[j], BigKrX, BigKi, BigPi_, BigVi)
+			round.out <- r2msg2
 		}
-
 		round.ok[j] = true
 	}
 
@@ -149,7 +148,9 @@ func (round *round1) Update() (bool, *tss.Error) {
 					round.temp.SentIndexes[i] = true
 					r1msg := NewSignRound1Message(round.PartyID(), round.Parties().IDs()[i], Krrj)
 					round.out <- r1msg
+					break
 				}
+				round.temp.BigR = Krrj
 			}
 		}
 
