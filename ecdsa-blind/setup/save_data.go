@@ -69,7 +69,7 @@ func NewLocalPartySaveData(threshold, partyCount int) (saveData LocalPartySaveDa
 	saveData.H1j, saveData.H2j = make([]*big.Int, partyCount), make([]*big.Int, partyCount)
 	saveData.BigXj = make([]*crypto.ECPoint, partyCount)
 	saveData.PaillierPKs = make([]*paillier.PublicKey, partyCount)
-	saveData.KeyIndexes = make([]*IndexesWithPartyID, partyCount)
+	saveData.KeyIndexes = make([]*IndexesWithPartyID, 0)
 	saveData.RecipientPaillierSK = make([]*paillier.PrivateKey, threshold+1)
 	return
 }

@@ -14,6 +14,7 @@ import (
 
 	"github.com/bnb-chain/tss-lib/v2/common"
 	"github.com/bnb-chain/tss-lib/v2/crypto"
+	"github.com/bnb-chain/tss-lib/v2/crypto/paillier"
 	"github.com/bnb-chain/tss-lib/v2/ecdsa-blind/setup"
 	"github.com/bnb-chain/tss-lib/v2/tss"
 )
@@ -52,20 +53,28 @@ type (
 		//share variable
 		Ki *big.Int
 		//Recipient
-		DataPhase1  []VerifyDataPhase1
+		DataPhase1  []*DataPhase1
 		SentIndexes []bool
 		mi          *big.Int
 		//Signer
-		m     *big.Int
-		BigR  *crypto.ECPoint
-		r     *big.Int
-		alpha *big.Int
+		m          *big.Int
+		BigR       *crypto.ECPoint
+		r          *big.Int
+		alpha      *big.Int
+		DataPhase2 []*DataPhase2
 	}
-	VerifyDataPhase1 struct {
+	DataPhase1 struct {
 		BigKri,
 		BigPi_,
 		BigKi,
 		BigVi *crypto.ECPoint
+	}
+	DataPhase2 struct {
+		SentCnt       int
+		SignersToSend []*tss.PartyID
+		PaillierPK    *paillier.PrivateKey
+		Ci,
+		Ci_a *big.Int
 	}
 )
 
@@ -98,6 +107,9 @@ func NewLocalParty(
 	p.temp.signRound2Messages1 = make([]tss.ParsedMessage, partyCount)
 	p.temp.signRound2Messages2 = make([]tss.ParsedMessage, partyCount)
 	p.temp.signRound3Messages = make([]tss.ParsedMessage, partyCount)
+	//temp data init
+	p.temp.DataPhase1 = make([]*DataPhase1, partyCount)
+	p.temp.DataPhase2 = make([]*DataPhase2, partyCount)
 	p.temp.m = msg
 
 	return p

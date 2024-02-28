@@ -125,7 +125,7 @@ func (m *SignRound1Message2) UnmarshalBigVi(ec elliptic.Curve) (*crypto.ECPoint,
 	return point, nil
 }
 
-func (m *SignRound1Message2) UnmarshalVerifyData(ec elliptic.Curve) (*VerifyDataPhase1, error) {
+func (m *SignRound1Message2) UnmarshalVerifyData(ec elliptic.Curve) (*DataPhase1, error) {
 	BigKrx, err := m.UnmarshalBigKrx(ec)
 	if err != nil {
 		return nil, err
@@ -142,7 +142,7 @@ func (m *SignRound1Message2) UnmarshalVerifyData(ec elliptic.Curve) (*VerifyData
 	if err != nil {
 		return nil, err
 	}
-	data := &VerifyDataPhase1{
+	data := &DataPhase1{
 		BigKri: BigKrx,
 		BigPi_: BigPi,
 		BigKi:  BigKi,

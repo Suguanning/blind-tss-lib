@@ -36,14 +36,55 @@ func (round *round2) Start() *tss.Error {
 			return round.WrapError(err, round.PartyID())
 		}
 
+		//分配Paillier方案
 		paillierIndex := 0
-		for j, share := range mShares {
-			if j == round.PartyID().Index {
+		dataPhase2 := round.temp.DataPhase2
+		for i, _ := range dataPhase2 {
+			if i == round.recipientIndex {
 				continue
 			}
-			paillier := round.save.RecipientPaillierSK[paillierIndex]
+			dataToSave := DataPhase2{
+				SentCnt:       0,
+				PaillierPK:    round.save.RecipientPaillierSK[paillierIndex],
+				SignersToSend: nil,
+				Ci:            nil,
+				Ci_a:          nil,
+			}
+			dataPhase2[i] = &dataToSave
+
 			paillierIndex++
-			mi := setup.ConvertToAddingShare(round.EC(), j, len(ks), share.Share, ks)
+
+		}
+		//建立签名者集合
+		signers := make([]*tss.PartyID, 0)
+		for i, id := range round.Parties().IDs() {
+			if i == round.recipientIndex {
+				continue
+			}
+			signers = append(signers, id)
+		}
+
+		//确定消息流转顺序
+		startIndex := 0
+		for i, data := range dataPhase2 {
+			if i == round.recipientIndex {
+				continue
+			}
+			data.SignersToSend = make([]*tss.PartyID, round.Threshold()+1)
+			for j, _ := range data.SignersToSend {
+				data.SignersToSend[j] = signers[(j+startIndex)%len(signers)]
+			}
+			startIndex++
+		}
+
+		for i, data := range dataPhase2 {
+			if i == round.recipientIndex {
+				continue
+			}
+			signerID := data.SignersToSend[data.SentCnt]
+			paillier := data.PaillierPK
+			data.SentCnt++
+			mi := setup.ConvertToAddingShare(round.EC(), signerID.Index, len(ks), mShares[signerID.Index].Share, ks)
 			Cmi, err := paillier.Encrypt(round.Rand(), mi)
 			if err != nil {
 				return round.WrapError(err, round.PartyID())
@@ -63,12 +104,11 @@ func (round *round2) Start() *tss.Error {
 			beta := common.GetRandomPositiveInt(round.PartialKeyRand(), round.EC().Params().N)
 			Mod := beta.Mul(beta, paillier.N)
 
-			IndexesWithPartyID := GetIndexFromKeyIndexes(round.save.KeyIndexes, round.Parties().IDs()[j])
+			IndexesWithPartyID := GetKeyIndexByPartyID(round.save.KeyIndexes, signerID)
 			index := IndexesWithPartyID.Index
-			SignerID := IndexesWithPartyID.PartyID
 
-			r2msg1 := NewSignRound2Message1(round.PartyID(), &SignerID, Cmi, Cri, Cmi_a, Cri_a, Mod, index)
-			round.temp.signRound2Messages1[j] = r2msg1
+			r2msg1 := NewSignRound2Message1(round.PartyID(), signerID, Cmi, Cri, Cmi_a, Cri_a, Mod, index)
+			round.temp.signRound2Messages1[signerID.Index] = r2msg1
 			round.out <- r2msg1
 		}
 	} else {
@@ -185,7 +225,7 @@ func (round *round2) NextRound() tss.Round {
 	return &round3{round}
 }
 
-func GetIndexFromKeyIndexes(keyIndexes []*setup.IndexesWithPartyID, partyID *tss.PartyID) *setup.IndexesWithPartyID {
+func GetKeyIndexByPartyID(keyIndexes []*setup.IndexesWithPartyID, partyID *tss.PartyID) *setup.IndexesWithPartyID {
 	for i, index := range keyIndexes {
 		if index.PartyID.Id == partyID.Id {
 			return keyIndexes[i]

@@ -33,7 +33,7 @@ func (round *finalization) Start() *tss.Error {
 				PartyID: *msg.GetFrom(),
 			}
 			round.ok[j] = true
-			round.save.KeyIndexes[j] = &indexWithPartyID
+			round.save.KeyIndexes = append(round.save.KeyIndexes, &indexWithPartyID)
 		}
 		round.end <- round.save
 	} else {

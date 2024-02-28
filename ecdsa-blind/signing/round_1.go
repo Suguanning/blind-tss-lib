@@ -126,20 +126,21 @@ func (round *round1) Update() (bool, *tss.Error) {
 			ret = false
 			continue
 		}
+		if j == round.recipientIndex {
+			return false, round.WrapError(errors.New("Round1 Wrong message sent to Recipient"), round.PartyID())
+		}
 		//Recpient处理消息
 		if round.isRecipient {
-			if j == round.recipientIndex {
-				return false, round.WrapError(errors.New("Round1 Wrong message sent to Recipient"), round.PartyID())
-			}
 			r1msg2 := msg.Content().(*SignRound1Message2)
 			data, err := r1msg2.UnmarshalVerifyData(round.EC())
-			round.temp.DataPhase1[j] = *data
+			round.temp.DataPhase1[j] = data
 			if err != nil {
 				return false, round.WrapError(err, round.PartyID())
 			}
 			//TODO：双线性映射校验DataPhase1[j]
 			Krrj := data.BigKri.ScalarMult(round.temp.Ki)
 
+			isAllSent := true
 			for i, sent := range round.temp.SentIndexes {
 				if i == round.recipientIndex {
 					continue
@@ -148,10 +149,15 @@ func (round *round1) Update() (bool, *tss.Error) {
 					round.temp.SentIndexes[i] = true
 					r1msg := NewSignRound1Message(round.PartyID(), round.Parties().IDs()[i], Krrj)
 					round.out <- r1msg
+					isAllSent = false
 					break
 				}
+			}
+
+			if isAllSent {
 				round.temp.BigR = Krrj
 			}
+
 		}
 
 		round.ok[j] = true
