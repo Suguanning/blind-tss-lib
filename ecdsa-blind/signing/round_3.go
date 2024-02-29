@@ -20,9 +20,14 @@ func (round *round3) Start() *tss.Error {
 	//modQ := common.ModInt(round.Params().EC().Params().N)
 	round.number = 3
 	round.started = true
-	//round.resetOK()
+	round.resetOK()
 	fmt.Print("Signer", round.PartyID().Index, "开始round", round.number, "\n")
 
+	if round.isRecipient {
+
+	} else {
+
+	}
 	return nil
 }
 

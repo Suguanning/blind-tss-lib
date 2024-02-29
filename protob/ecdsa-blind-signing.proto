@@ -33,8 +33,13 @@ message SignRound2Message2{
     bytes bigXi_y = 4;
 }
 
-message SignRound3Message{
+message SignRound3Message1{
     bytes Ci = 1;
     bytes Ci_a = 2;
     bytes N = 3;
 }
+message SignRound3Message2{
+    bytes Ci = 1;
+    bytes Ci_a = 2;
+}
+

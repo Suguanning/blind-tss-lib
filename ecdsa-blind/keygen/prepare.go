@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/bnb-chain/tss-lib/v2/common"
-	"github.com/bnb-chain/tss-lib/v2/crypto/paillier"
+	paillier"github.com/bnb-chain/tss-lib/v2/crypto/paillier_modified"
 	"github.com/bnb-chain/tss-lib/v2/ecdsa-blind/setup"
 )
 

@@ -135,6 +135,7 @@ func TestSignBigR(t *testing.T) {
 }
 
 func TestSignRound2(t *testing.T) {
+	//测试需要修改代码，在Round2结束时向endCh发送消息
 	fmt.Print("测试开始\n")
 	localData, sortedIDs, err := setup.LoadKeygenTestFixtures(testParttestPacipants)
 	if err != nil {
@@ -209,16 +210,19 @@ func TestSignRound2(t *testing.T) {
 						}
 					}
 				}
+			//需要在Round2结束时向endCh发送消息
 			case save := <-endCh:
 				roundFinished = true
-				t.Log(save)
+				save = save
 				break
 			}
 		}
 		if roundFinished {
+			t.Log("\n------------------round2结束，开始验证----------------------\n")
 			//验证Ci *a = Ci_a
 			recipientParty := localParties[recipientIndex]
 			dataphase2 := recipientParty.temp.DataPhase2
+			modQ := common.ModInt(tss.EC().Params().N)
 			for i, data := range dataphase2 {
 				if i == recipientIndex {
 					continue
@@ -238,17 +242,25 @@ func TestSignRound2(t *testing.T) {
 					t.Fatal("ci * a != ci_a")
 					return
 				}
-				// ki := localParties[i].temp.Ki
-				// ki_inverse := modQ.ModInverse(ki)
-				// pi := localParties[i].data.LocalSecrets.Pi
-				// mi := data.mi
-				// xi := localParties[i].temp.xi
-				// r := recipientParty.temp.r
-				// kipi := pi.Mul(ki_inverse,pi)
-				// xir := xi.Mul(xi,r)
-				// mi_puls_xir :=
-				fmt.Print("测试通过\n")
+				t.Log("Signer", i, "alpha * D(Ci)==D(Ci_a)\n")
+				ki := localParties[i].temp.Ki
+				ki_inverse := modQ.ModInverse(ki)
+				pi := localParties[i].data.LocalSecrets.Pi
+				mi := data.mi
+				xi := localParties[i].temp.xi
+				r := recipientParty.temp.r
+				kipi := modQ.Mul(ki_inverse, pi)
+				xir := modQ.Mul(xi, r)
+				mi_puls_xir := modQ.Add(mi, xir)
+				si := modQ.Mul(kipi, mi_puls_xir)
+				ci = modQ.Mul(ci, big.NewInt(1))
+				if si.Cmp(ci) != 0 {
+					t.Fatal("si != ci")
+					return
+				}
+				t.Log("Signer", i, "D(Ci)==si\n")
 			}
+			t.Log("\n----------------------------测试通过-----------------------------\n")
 			return
 		}
 	}
