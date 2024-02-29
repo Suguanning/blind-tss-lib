@@ -54,14 +54,15 @@ type (
 		Ki *big.Int
 		//Recipient
 		DataPhase1  []*DataPhase1
+		DataPhase2  []*DataPhase2
 		SentIndexes []bool
 		mi          *big.Int
 		//Signer
-		m          *big.Int
-		BigR       *crypto.ECPoint
-		r          *big.Int
-		alpha      *big.Int
-		DataPhase2 []*DataPhase2
+		m     *big.Int
+		BigR  *crypto.ECPoint
+		r     *big.Int
+		alpha *big.Int
+		xi    *big.Int
 	}
 	DataPhase1 struct {
 		BigKri,
@@ -74,7 +75,8 @@ type (
 		SignersToSend []*tss.PartyID
 		PaillierPK    *paillier.PrivateKey
 		Ci,
-		Ci_a *big.Int
+		Ci_a,
+		mi *big.Int
 	}
 )
 

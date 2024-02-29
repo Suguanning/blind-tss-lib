@@ -18,7 +18,7 @@ func (round *finalization) Start() *tss.Error {
 	}
 	round.number = round.number + 1
 	round.started = true
-	round.resetOK()
+	//round.resetOK()
 
 	return nil
 }

@@ -133,3 +133,128 @@ func TestSignBigR(t *testing.T) {
 	}
 
 }
+
+func TestSignRound2(t *testing.T) {
+	fmt.Print("测试开始\n")
+	localData, sortedIDs, err := setup.LoadKeygenTestFixtures(testParttestPacipants)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := tss.NewPeerContext(sortedIDs)
+	// 生成公共参数
+	//生成localParty
+	outCh := make(chan tss.Message, 10)
+	endCh := make(chan *setup.LocalPartySaveData, 10)
+
+	recipientIndex := 0
+	for i, data := range localData {
+		if data.Role == "Recipient" {
+			recipientIndex = i
+			break
+		}
+	}
+	localParties := make([]*LocalParty, 4)
+	msg := big.NewInt(100)
+	for i, data := range localData {
+		params := tss.NewParameters(tss.EC(), ctx, sortedIDs[i], testParttestPacipants, testThreshold)
+		m := msg
+		if data.Role == "Recipient" {
+			m = msg
+		} else {
+			m = nil
+		}
+		localParties[i] = NewLocalParty(params, data.Role == "Recipient", recipientIndex, &data, m, outCh, endCh).(*LocalParty)
+		go localParties[i].Start()
+	}
+	updater := test.SharedPartyUpdater
+	errCh := make(chan *tss.Error, 10)
+	//round1Finished := make([]bool, testParttestPacipants)
+	roundFinished := false
+	for {
+		roundFinished = true
+		for i, data := range localParties[recipientIndex].temp.signRound2Messages2 {
+			if i == recipientIndex {
+				continue
+			}
+			if data == nil {
+				roundFinished = false
+				break
+			}
+		}
+		if !roundFinished {
+			select {
+			case msg := <-outCh:
+				dest := msg.GetTo()
+				if dest == nil {
+					for _, P := range localParties {
+						if P.PartyID().Id == msg.GetFrom().Id {
+							continue
+						}
+						go updater(P, msg, errCh)
+					}
+				} else {
+					if dest[0].Index == msg.GetFrom().Index {
+						t.Fatalf("party %d tried to send a message to itself (%d)", dest[0].Index, msg.GetFrom().Index)
+						return
+					}
+					for _, party := range localParties {
+						if party.PartyID().Id == dest[0].Id {
+							bz, _, err := msg.WireBytes()
+							if err != nil {
+								t.Fatalf("failed to wirebytes: %s", err)
+							}
+							pMsg, err := tss.ParseWireMessage(bz, msg.GetFrom(), msg.IsBroadcast())
+							go party.Update(pMsg)
+							break
+						}
+					}
+				}
+			case save := <-endCh:
+				roundFinished = true
+				t.Log(save)
+				break
+			}
+		}
+		if roundFinished {
+			//验证Ci *a = Ci_a
+			recipientParty := localParties[recipientIndex]
+			dataphase2 := recipientParty.temp.DataPhase2
+			for i, data := range dataphase2 {
+				if i == recipientIndex {
+					continue
+				}
+				modN := common.ModInt(data.PaillierPK.N)
+				//modQ := common.ModInt(tss.EC().Params().N)
+				ci, err := data.PaillierPK.Decrypt(data.Ci)
+				if err != nil {
+					t.Fatal(err)
+				}
+				ci_a, err := data.PaillierPK.Decrypt(data.Ci_a)
+				if err != nil {
+					t.Fatal(err)
+				}
+				ci_a2 := modN.Mul(ci, recipientParty.temp.alpha)
+				if ci_a.Cmp(ci_a2) != 0 {
+					t.Fatal("ci * a != ci_a")
+					return
+				}
+				// ki := localParties[i].temp.Ki
+				// ki_inverse := modQ.ModInverse(ki)
+				// pi := localParties[i].data.LocalSecrets.Pi
+				// mi := data.mi
+				// xi := localParties[i].temp.xi
+				// r := recipientParty.temp.r
+				// kipi := pi.Mul(ki_inverse,pi)
+				// xir := xi.Mul(xi,r)
+				// mi_puls_xir :=
+				fmt.Print("测试通过\n")
+			}
+			return
+		}
+	}
+
+}
+
+func TestModifiedPaillier(t *testing.T) {
+
+}

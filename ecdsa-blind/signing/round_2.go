@@ -8,8 +8,10 @@ package signing
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/bnb-chain/tss-lib/v2/common"
+	"github.com/bnb-chain/tss-lib/v2/crypto"
 	"github.com/bnb-chain/tss-lib/v2/crypto/paillier"
 	"github.com/bnb-chain/tss-lib/v2/crypto/vss"
 	"github.com/bnb-chain/tss-lib/v2/ecdsa-blind/setup"
@@ -24,6 +26,7 @@ func (round *round2) Start() *tss.Error {
 	round.started = true
 	round.resetOK()
 	ks := round.save.Ks
+	fmt.Print("Signer", round.PartyID().Index, "开始round", round.number, "\n")
 	if round.isRecipient {
 		round.ok[round.recipientIndex] = true
 		alpha := common.GetRandomPositiveInt(round.PartialKeyRand(), round.EC().Params().N)
@@ -37,6 +40,7 @@ func (round *round2) Start() *tss.Error {
 		}
 
 		//分配Paillier方案
+		fmt.Print("Recipient 分配Paillier方案\n")
 		paillierIndex := 0
 		dataPhase2 := round.temp.DataPhase2
 		for i, _ := range dataPhase2 {
@@ -56,6 +60,7 @@ func (round *round2) Start() *tss.Error {
 
 		}
 		//建立签名者集合
+		fmt.Print("Recipient 建立签名者集合\n")
 		signers := make([]*tss.PartyID, 0)
 		for i, id := range round.Parties().IDs() {
 			if i == round.recipientIndex {
@@ -65,6 +70,7 @@ func (round *round2) Start() *tss.Error {
 		}
 
 		//确定消息流转顺序
+		fmt.Print("Recipient 确定消息流转顺序\n")
 		startIndex := 0
 		for i, data := range dataPhase2 {
 			if i == round.recipientIndex {
@@ -81,10 +87,13 @@ func (round *round2) Start() *tss.Error {
 			if i == round.recipientIndex {
 				continue
 			}
+
 			signerID := data.SignersToSend[data.SentCnt]
+			fmt.Print("Recipient 构造发送给Signer ", signerID.Index, "的消息", "\n")
 			paillier := data.PaillierPK
 			data.SentCnt++
 			mi := setup.ConvertToAddingShare(round.EC(), signerID.Index, len(ks), mShares[signerID.Index].Share, ks)
+			data.mi = mi
 			Cmi, err := paillier.Encrypt(round.Rand(), mi)
 			if err != nil {
 				return round.WrapError(err, round.PartyID())
@@ -109,6 +118,7 @@ func (round *round2) Start() *tss.Error {
 
 			r2msg1 := NewSignRound2Message1(round.PartyID(), signerID, Cmi, Cri, Cmi_a, Cri_a, Mod, index)
 			round.temp.signRound2Messages1[signerID.Index] = r2msg1
+			fmt.Print("Recipient 发送给Signer ", signerID.Index, "\n")
 			round.out <- r2msg1
 		}
 	} else {
@@ -146,9 +156,10 @@ func (round *round2) Update() (bool, *tss.Error) {
 			continue
 		}
 		if !round.isRecipient {
-			if j == round.recipientIndex {
+			if j != round.recipientIndex {
 				return false, round.WrapError(errors.New("Round2 Wrong message sent to Signer"), round.PartyID())
 			}
+			fmt.Print("Signer ", round.PartyID().Index, "收到消息\n")
 			modQ := common.ModInt(round.Params().EC().Params().N)
 			r2msg := msg.Content().(*SignRound2Message1)
 			Cmi := r2msg.UnmarshalCmi()
@@ -158,7 +169,7 @@ func (round *round2) Update() (bool, *tss.Error) {
 			N := r2msg.UnmarshalN()
 			index := r2msg.UnmarshalIndex()
 			//比较index和round.save.LocalSecrets.Index
-			if CompareSlice(index, round.save.LocalSecrets.Index) {
+			if !CompareSlice(index, round.save.LocalSecrets.Index) {
 				return ret, round.WrapError(errors.New("index not match"), round.PartyID())
 			}
 			paillierPub := paillier.PublicKey{N: N}
@@ -169,6 +180,9 @@ func (round *round2) Update() (bool, *tss.Error) {
 			ks := round.save.Ks
 			xi := round.save.LocalSecrets.Xi
 			xi = setup.ConvertToAddingShare(round.Params().EC(), i, round.PartyCount(), xi, ks)
+			round.temp.xi = xi
+			BigXi := crypto.ScalarBaseMult(tss.EC(), xi)
+			fmt.Print("Signer ", round.PartyID().Index, "开始处理消息\n")
 			rx, err := paillierPub.HomoMult(xi, Cri)
 			if err != nil {
 				return ret, round.WrapError(err, round.PartyID())
@@ -194,10 +208,11 @@ func (round *round2) Update() (bool, *tss.Error) {
 				return ret, round.WrapError(err, round.PartyID())
 			}
 			Recipient := round.Parties().IDs()[round.recipientIndex]
-			r2msg2 := NewSignRound2Message2(round.PartyID(), Recipient, Ci, Ci_a, round.save.BigXj[round.PartyID().Index])
+			r2msg2 := NewSignRound2Message2(round.PartyID(), Recipient, Ci, Ci_a, BigXi)
+			fmt.Print("Signer ", round.PartyID().Index, "发送消息\n")
 			round.out <- r2msg2
+			round.ok[j] = true
 		}
-		round.ok[j] = true
 	}
 
 	for j, msg := range round.temp.signRound2Messages2 {
@@ -211,6 +226,17 @@ func (round *round2) Update() (bool, *tss.Error) {
 		}
 		if round.isRecipient {
 			//DO SOMETHING?
+			dataPhase2 := round.temp.DataPhase2[j]
+			N2 := dataPhase2.PaillierPK.NSquare()
+			fmt.Print("Recipient 收到Signer ", j, "的消息\n")
+			r2msg := msg.Content().(*SignRound2Message2)
+			Ci := r2msg.UnmarshalCi()
+			Ci_a := r2msg.UnmarshalCiA()
+			//取N2模还原，否则paillier会报消息过大
+			Ci = Ci.Mod(Ci, N2)
+			Ci_a = Ci_a.Mod(Ci_a, N2)
+			round.temp.DataPhase2[j].Ci = Ci
+			round.temp.DataPhase2[j].Ci_a = Ci_a
 		}
 		round.ok[j] = true
 	}
@@ -219,10 +245,11 @@ func (round *round2) Update() (bool, *tss.Error) {
 
 func (round *round2) NextRound() tss.Round {
 	round.started = false
+	fmt.Print("Signer ", round.PartyID().Index, "已结束round2\n")
 	if round.isRecipient {
-		return &round1{round.base, round.isRecipient, round.recipientIndex}
+		round.end <- round.save
 	}
-	return &round3{round}
+	return nil //&round3{round}
 }
 
 func GetKeyIndexByPartyID(keyIndexes []*setup.IndexesWithPartyID, partyID *tss.PartyID) *setup.IndexesWithPartyID {
