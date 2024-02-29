@@ -15,7 +15,8 @@ var (
 		(*SignRound1Message2)(nil),
 		(*SignRound2Message1)(nil),
 		(*SignRound2Message2)(nil),
-		(*SignRound3Message)(nil),
+		(*SignRound3Message1)(nil),
+		(*SignRound3Message2)(nil),
 	}
 )
 
@@ -159,7 +160,8 @@ func NewSignRound2Message1(from *tss.PartyID,
 	Cmi,
 	Cr,
 	Cmi_a,
-	Cr_a, N *big.Int,
+	Cr_a,
+	N *big.Int,
 	index []byte,
 ) tss.ParsedMessage {
 	meta := tss.MessageRouting{
@@ -245,19 +247,65 @@ func (m *SignRound2Message2) UnmarshalXi(ec elliptic.Curve) (*crypto.ECPoint, er
 
 // ----- //
 
-func NewSignRound3Message(from *tss.PartyID, to *tss.PartyID, data []byte) tss.ParsedMessage {
+func NewSignRound3Message1(
+	from *tss.PartyID,
+	to *tss.PartyID,
+	Ci,
+	Ci_a,
+	N *big.Int) tss.ParsedMessage {
 	meta := tss.MessageRouting{
 		From:        from,
 		To:          []*tss.PartyID{to},
 		IsBroadcast: false,
 	}
 
-	content := &SignRound3Message{
-		//PrimeShare: share.Share.Bytes(),
+	content := &SignRound3Message1{
+		Ci:  Ci.Bytes(),
+		CiA: Ci_a.Bytes(),
+		N:   N.Bytes(),
 	}
 	msg := tss.NewMessageWrapper(meta, content)
 	return tss.NewMessage(meta, content, msg)
 }
-func (m *SignRound3Message) ValidateBasic() bool {
+func (m *SignRound3Message1) ValidateBasic() bool {
 	return true
+}
+func (m *SignRound3Message1) UnmarshalCi() *big.Int {
+	return new(big.Int).SetBytes(m.Ci)
+}
+func (m *SignRound3Message1) UnmarshalCiA() *big.Int {
+	return new(big.Int).SetBytes(m.CiA)
+}
+func (m *SignRound3Message1) UnmarshalN() *big.Int {
+	return new(big.Int).SetBytes(m.N)
+}
+
+// ----- //
+
+func NewSignRound3Message2(
+	from *tss.PartyID,
+	to *tss.PartyID,
+	Ci,
+	Ci_a *big.Int) tss.ParsedMessage {
+	meta := tss.MessageRouting{
+		From:        from,
+		To:          []*tss.PartyID{to},
+		IsBroadcast: false,
+	}
+
+	content := &SignRound3Message2{
+		Ci:  Ci.Bytes(),
+		CiA: Ci_a.Bytes(),
+	}
+	msg := tss.NewMessageWrapper(meta, content)
+	return tss.NewMessage(meta, content, msg)
+}
+func (m *SignRound3Message2) ValidateBasic() bool {
+	return true
+}
+func (m *SignRound3Message2) UnmarshalCi() *big.Int {
+	return new(big.Int).SetBytes(m.Ci)
+}
+func (m *SignRound3Message2) UnmarshalCiA() *big.Int {
+	return new(big.Int).SetBytes(m.CiA)
 }

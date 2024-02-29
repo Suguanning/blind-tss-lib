@@ -168,6 +168,8 @@ func (round *round2) Update() (bool, *tss.Error) {
 			//计算k^{-1}p(mi + rx)
 			ki_inverse := modQ.ModInverse(round.temp.Ki)
 			ki_inverse_pi := modQ.Mul(ki_inverse, round.save.LocalSecrets.Pi)
+			round.temp.KiInverse = ki_inverse
+			round.temp.KiInversePi = ki_inverse_pi
 			i := round.PartyID().Index
 			ks := round.save.Ks
 			xi := round.save.LocalSecrets.Xi
@@ -200,6 +202,7 @@ func (round *round2) Update() (bool, *tss.Error) {
 			}
 			Recipient := round.Parties().IDs()[round.recipientIndex]
 			r2msg2 := NewSignRound2Message2(round.PartyID(), Recipient, Ci, Ci_a, BigXi)
+			round.temp.Phase2SentCnt = 1
 			round.out <- r2msg2
 			round.ok[j] = true
 		}
@@ -215,7 +218,6 @@ func (round *round2) Update() (bool, *tss.Error) {
 			continue
 		}
 		if round.isRecipient {
-			//DO SOMETHING?
 			dataPhase2 := round.temp.DataPhase2[j]
 			N2 := dataPhase2.PaillierPK.NSquare()
 			r2msg := msg.Content().(*SignRound2Message2)
@@ -224,8 +226,8 @@ func (round *round2) Update() (bool, *tss.Error) {
 			//取N2模还原，否则paillier会报消息过大
 			Ci = Ci.Mod(Ci, N2)
 			Ci_a = Ci_a.Mod(Ci_a, N2)
-			round.temp.DataPhase2[j].Ci = Ci
-			round.temp.DataPhase2[j].Ci_a = Ci_a
+			round.temp.DataPhase2[j].Ci = append(round.temp.DataPhase2[j].Ci, Ci)
+			round.temp.DataPhase2[j].Ci_a = append(round.temp.DataPhase2[j].Ci_a, Ci_a)
 		}
 		round.ok[j] = true
 	}
@@ -234,6 +236,9 @@ func (round *round2) Update() (bool, *tss.Error) {
 
 func (round *round2) NextRound() tss.Round {
 	round.started = false
+	// if round.isRecipient {
+	// 	round.end <- round.save
+	// }
 	return &round3{round}
 }
 

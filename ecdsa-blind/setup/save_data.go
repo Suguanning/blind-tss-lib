@@ -55,11 +55,16 @@ type (
 		RecipientPaillierSK []*paillier.PrivateKey
 		PrimeMask           *big.Int
 		Role                string
+		SignatureResult     *Signature
 	}
 
 	IndexesWithPartyID struct {
 		Index   []byte
 		PartyID tss.PartyID
+	}
+	Signature struct {
+		R *big.Int
+		S *big.Int
 	}
 )
 

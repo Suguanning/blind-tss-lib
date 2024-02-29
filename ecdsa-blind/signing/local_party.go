@@ -45,24 +45,27 @@ type (
 		signRound1Messages2,
 		signRound2Messages1,
 		signRound2Messages2,
-		signRound3Messages []tss.ParsedMessage
+		signRound3Messages1,
+		signRound3Messages2 []tss.ParsedMessage
 	}
 
 	localTempData struct {
 		localMessageStore
 		//share variable
-		Ki *big.Int
+		Ki          *big.Int
+		KiInverse   *big.Int
+		KiInversePi *big.Int
 		//Recipient
 		DataPhase1  []*DataPhase1
 		DataPhase2  []*DataPhase2
 		SentIndexes []bool
-		mi          *big.Int
+		m           *big.Int
 		//Signer
-		m     *big.Int
-		BigR  *crypto.ECPoint
-		r     *big.Int
-		alpha *big.Int
-		xi    *big.Int
+		Phase2SentCnt int
+		BigR          *crypto.ECPoint
+		r             *big.Int
+		alpha         *big.Int
+		xi            *big.Int
 	}
 	DataPhase1 struct {
 		BigKri,
@@ -71,12 +74,13 @@ type (
 		BigVi *crypto.ECPoint
 	}
 	DataPhase2 struct {
+		AllOK         bool
 		SentCnt       int
 		SignersToSend []*tss.PartyID
 		PaillierPK    *paillier.PrivateKey
-		Ci,
-		Ci_a,
-		mi *big.Int
+		Ci            []*big.Int
+		Ci_a          []*big.Int
+		mi            *big.Int
 	}
 )
 
@@ -108,7 +112,8 @@ func NewLocalParty(
 	p.temp.signRound1Messages2 = make([]tss.ParsedMessage, partyCount)
 	p.temp.signRound2Messages1 = make([]tss.ParsedMessage, partyCount)
 	p.temp.signRound2Messages2 = make([]tss.ParsedMessage, partyCount)
-	p.temp.signRound3Messages = make([]tss.ParsedMessage, partyCount)
+	p.temp.signRound3Messages1 = make([]tss.ParsedMessage, partyCount)
+	p.temp.signRound3Messages2 = make([]tss.ParsedMessage, partyCount)
 	//temp data init
 	p.temp.DataPhase1 = make([]*DataPhase1, partyCount)
 	p.temp.DataPhase2 = make([]*DataPhase2, partyCount)
@@ -167,8 +172,10 @@ func (p *LocalParty) StoreMessage(msg tss.ParsedMessage) (bool, *tss.Error) {
 		p.temp.signRound2Messages1[fromPIdx] = msg
 	case *SignRound2Message2:
 		p.temp.signRound2Messages2[fromPIdx] = msg
-	case *SignRound3Message:
-		p.temp.signRound3Messages[fromPIdx] = msg
+	case *SignRound3Message1:
+		p.temp.signRound3Messages1[fromPIdx] = msg
+	case *SignRound3Message2:
+		p.temp.signRound3Messages2[fromPIdx] = msg
 
 	default: // unrecognised message, just ignore!
 		common.Logger.Warningf("unrecognised message ignored: %v", msg)
