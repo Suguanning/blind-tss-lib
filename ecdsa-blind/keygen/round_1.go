@@ -11,6 +11,7 @@ import (
 	"errors"
 
 	"github.com/bnb-chain/tss-lib/v2/common"
+	"github.com/bnb-chain/tss-lib/v2/crypto"
 	"github.com/bnb-chain/tss-lib/v2/crypto/vss"
 	"github.com/bnb-chain/tss-lib/v2/ecdsa-blind/setup"
 	"github.com/bnb-chain/tss-lib/v2/tss"
@@ -60,6 +61,7 @@ func (round *round1) Start() *tss.Error {
 		if round.save.LocalSecrets.Xi == nil {
 			x := common.GetRandomPositiveInt(round.Rand(), round.EC().Params().N)
 			round.save.LocalSecrets.Xi = x
+			round.save.LocalSecrets.BigXi = crypto.ScalarBaseMult(round.EC(), x)
 		}
 		x := round.save.LocalSecrets.Xi
 		_, shares, err := vss.Create(round.EC(), round.Threshold(), x, ks, round.Rand())

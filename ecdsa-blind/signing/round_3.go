@@ -47,6 +47,14 @@ func (round *round3) Start() *tss.Error {
 			if Ci_a.Cmp(Ci_a2) != 0 {
 				//该数据的
 				fmt.Print("Signer", data.SignersToSend[data.SentCnt-1].Index, "的Ci_a != Ci_a2\n")
+				sentCnt := data.SentCnt - 1
+				for i, p := range data.SignersToSend {
+					if i == sentCnt {
+						fmt.Print(">Signer", p.Index, "\n")
+					} else {
+						fmt.Print("Signer", p.Index, "\n")
+					}
+				}
 				return round.WrapError(errors.New("Ci_a != Ci_a2"), data.SignersToSend[data.SentCnt-1])
 			}
 			Ci_kr_inv, err := paillier.HomoMult(round.temp.KiInverse, Ci)
@@ -60,6 +68,7 @@ func (round *round3) Start() *tss.Error {
 			r3msg1 := NewSignRound3Message1(round.PartyID(), signerID, Ci_kr_inv, Ci_a_kr_inv, Mod)
 			round.temp.signRound3Messages1[signerID.Index] = r3msg1
 			data.SentCnt++
+			//fmt.Print("Recipient 向Signer", signerID.Index, "发送r3msg1\n")
 			round.out <- r3msg1
 		}
 	} else {
@@ -85,8 +94,12 @@ func (round *round3) Update() (bool, *tss.Error) {
 			continue
 		}
 		if !round.isRecipient {
+			fmt.Print("Signer ", round.PartyID().Index, "接收到来自Recipient的r3msg1\n")
 			recipientID := round.Parties().IDs()[round.recipientIndex]
 			r3msg1 := msg.Content().(*SignRound3Message1)
+
+			round.temp.signRound3Messages1[j] = nil
+
 			Ci := r3msg1.UnmarshalCi()
 			Ci_a := r3msg1.UnmarshalCiA()
 			N := r3msg1.UnmarshalN()
@@ -104,6 +117,7 @@ func (round *round3) Update() (bool, *tss.Error) {
 			round.temp.Phase2SentCnt++
 			round.out <- r3msg2
 			if round.temp.Phase2SentCnt > round.Threshold() {
+				fmt.Print("Signer ", round.PartyID().Index, "完成签名\n")
 				round.ok[j] = true
 			}
 		}
@@ -119,6 +133,7 @@ func (round *round3) Update() (bool, *tss.Error) {
 			continue
 		}
 		if round.isRecipient {
+			fmt.Print("Recipient ", round.PartyID().Index, "接收到来自Signer ", j, "的r3msg2\n")
 			var dataIndex int
 			for i, data := range round.temp.DataPhase2 {
 				if data == nil {
@@ -129,9 +144,11 @@ func (round *round3) Update() (bool, *tss.Error) {
 				}
 			}
 			data := round.temp.DataPhase2[dataIndex]
-			signerID := data.SignersToSend[data.SentCnt]
 			paillier := data.PaillierPK
 			r3msg2 := msg.Content().(*SignRound3Message2)
+
+			round.temp.signRound3Messages2[j] = nil
+
 			N2 := paillier.NSquare()
 			Ci := r3msg2.UnmarshalCi()
 			Ci_a := r3msg2.UnmarshalCiA()
@@ -146,6 +163,14 @@ func (round *round3) Update() (bool, *tss.Error) {
 			//校验该数据
 			if Ci_a.Cmp(Ci_a2) != 0 {
 				fmt.Print("Signer", data.SignersToSend[data.SentCnt-1].Index, "的Ci_a != Ci_a2\n")
+				sentCnt := data.SentCnt - 1
+				for i, p := range data.SignersToSend {
+					if i == sentCnt {
+						fmt.Print(">Signer", p.Index, "\n")
+					} else {
+						fmt.Print("Signer", p.Index, "\n")
+					}
+				}
 				return false, round.WrapError(errors.New("Ci_a != Ci_a2"), data.SignersToSend[data.SentCnt-1])
 			}
 			//判断当前消息是否已经经过所有节点处理
@@ -154,6 +179,7 @@ func (round *round3) Update() (bool, *tss.Error) {
 			}
 
 			if !data.AllOK {
+				signerID := data.SignersToSend[data.SentCnt]
 				beta := common.GetRandomPositiveInt(round.PartialKeyRand(), round.EC().Params().N)
 				Mod := beta.Mul(beta, paillier.N)
 				Ci_kr_inv, err := paillier.HomoMult(round.temp.KiInverse, Ci)
@@ -167,10 +193,22 @@ func (round *round3) Update() (bool, *tss.Error) {
 				r3msg1 := NewSignRound3Message1(round.PartyID(), signerID, Ci_kr_inv, Ci_a_kr_inv, Mod)
 				round.temp.signRound3Messages1[signerID.Index] = r3msg1
 				data.SentCnt++
+				//fmt.Print("Recipient向Signer ", signerID.Index, "发送r3msg1\n")
 				round.out <- r3msg1
-			} else {
-				//TODO : ROUND OK 条件判定
-				//round.ok[j] = true
+			}
+			notOKCnt := 0
+			for i, dataPhase2 := range round.temp.DataPhase2 {
+				if i == round.recipientIndex {
+					continue
+				}
+				if !dataPhase2.AllOK {
+					notOKCnt++
+				}
+			}
+			if notOKCnt == 0 {
+				for i := range round.ok {
+					round.ok[i] = true
+				}
 			}
 		}
 

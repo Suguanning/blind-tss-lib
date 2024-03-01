@@ -1,6 +1,7 @@
 package signing
 
 import (
+	"crypto/rand"
 	"fmt"
 	"math/big"
 	"testing"
@@ -287,12 +288,12 @@ func TestLocalParty(t *testing.T) {
 		}
 	}
 	localParties := make([]*LocalParty, 4)
-	msg := big.NewInt(100)
+	msgToSign := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N) //big.NewInt(100)
 	for i, data := range localData {
 		params := tss.NewParameters(tss.EC(), ctx, sortedIDs[i], testParttestPacipants, testThreshold)
-		m := msg
+		m := msgToSign
 		if data.Role == "Recipient" {
-			m = msg
+			m = msgToSign
 		} else {
 			m = nil
 		}
@@ -303,16 +304,6 @@ func TestLocalParty(t *testing.T) {
 	errCh := make(chan *tss.Error, 10)
 	roundFinished := false
 	for {
-		roundFinished = true
-		for i, data := range localParties[recipientIndex].temp.signRound2Messages2 {
-			if i == recipientIndex {
-				continue
-			}
-			if data == nil {
-				roundFinished = false
-				break
-			}
-		}
 		if !roundFinished {
 			select {
 			case msg := <-outCh:
@@ -330,6 +321,7 @@ func TestLocalParty(t *testing.T) {
 						return
 					}
 					for _, party := range localParties {
+
 						if party.PartyID().Id == dest[0].Id {
 							bz, _, err := msg.WireBytes()
 							if err != nil {
@@ -343,13 +335,194 @@ func TestLocalParty(t *testing.T) {
 				}
 			case save := <-endCh:
 				roundFinished = true
-				t.Log("\n签名S:", save.SignatureResult.S, "\n")
-				t.Log("\n签名R:", save.SignatureResult.R, "\n")
+				fmt.Print("\n签名S:", save.SignatureResult.S, "\n")
+				fmt.Print("\n签名R:", save.SignatureResult.R, "\n")
+				s := save.SignatureResult.S
+				r := save.SignatureResult.R
+				m := msgToSign
+				BigX := save.LocalSecrets.BigXi
+				ECDSAVerify(r, s, m, BigX)
+				if ECDSAVerify(r, s, m, BigX) {
+					fmt.Print("验签成功")
+				} else {
+					fmt.Print("验签失败\n")
+					//modQ := common.ModInt(tss.EC().Params().N)
+					data := localParties[recipientIndex].temp.DataPhase2[1]
+					alpha := localParties[recipientIndex].temp.alpha
+					C2 := data.Ci[len(data.Ci)-2]
+					C2_a := data.Ci_a[len(data.Ci_a)-2]
+					C1 := data.Ci[len(data.Ci)-3]
+					paillierPk := data.PaillierPK
+					signerID := data.SignersToSend[1]
+					signerParty := localParties[signerID.Index]
+					kipi := signerParty.temp.KiInversePi
+					kr_inv := localParties[recipientIndex].temp.KiInverse
+					C2_cal, _ := paillierPk.HomoMult(kipi, C1)
+					C2_cal, _ = paillierPk.HomoMult(kr_inv, C1)
+					C2_a_cal, _ := paillierPk.HomoMult(alpha, C2)
+					if C2.Cmp(C2_cal) != 0 {
+						fmt.Print("C3 != C3_cal\n")
+					}
+					if C2_a.Cmp(C2_a_cal) != 0 {
+						fmt.Print("C3_a != C3_a_cal\n")
+					}
+
+					return
+				}
 				break
 			}
 		}
 		if roundFinished {
 			t.Log("\n----------------------------测试通过-----------------------------\n")
+			return
 		}
+	}
+}
+func ECDSAVerify(r, s, m *big.Int, y *crypto.ECPoint) bool {
+	modQ := common.ModInt(tss.EC().Params().N)
+	s_inv := modQ.ModInverse(s)
+	ms_inv := modQ.Mul(m, s_inv)
+	rs_inv := modQ.Mul(r, s_inv)
+	BigMs := crypto.ScalarBaseMult(tss.EC(), ms_inv)
+	YRS := y.ScalarMult(rs_inv)
+	R_1, _ := BigMs.Add(YRS)
+	r_1 := R_1.X()
+	if r.Cmp(r_1) == 0 {
+		return true
+	} else {
+		return false
+	}
+}
+func TestEcdsa(t *testing.T) {
+	modQ := common.ModInt(tss.EC().Params().N)
+	x := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
+	k := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
+	m := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
+	BigX := crypto.ScalarBaseMult(tss.EC(), x)
+	k_inv := modQ.ModInverse(k)
+	R := BigX.ScalarMult(k)
+	r := R.X()
+	r_mod := modQ.Mul(r, big.NewInt(1))
+	if r_mod.Cmp(r) != 0 {
+		fmt.Print(" r mod q  is important\n")
+	}
+	rx := modQ.Mul(r, x)
+	rx_plus_m := modQ.Add(rx, m)
+	s := modQ.Mul(k_inv, rx_plus_m)
+	if ECDSAVerify(r, s, m, BigX) {
+		fmt.Print("验签成功")
+	} else {
+		//	t.Fail()
+	}
+	s_inv := modQ.ModInverse(s)
+	ms_inv := modQ.Mul(m, s_inv)
+	xrs_inv := modQ.Mul(x, s_inv)
+	temp := modQ.Add(xrs_inv, ms_inv)
+	if temp.Cmp(k) == 0 {
+		fmt.Print("fine~")
+	}
+	temp_inv := modQ.ModInverse(temp)
+	if temp_inv.Cmp(k) == 0 {
+		fmt.Print("GotCha!!!")
+	}
+}
+
+func TestECC(t *testing.T) {
+	modQ := common.ModInt(tss.EC().Params().N)
+	point1 := crypto.ScalarBaseMult(tss.EC(), big.NewInt(1))
+	point2 := crypto.ScalarBaseMult(tss.EC(), big.NewInt(2))
+	point2_ := point1.ScalarMult(big.NewInt(2))
+	if point2.X().Cmp(point2_.X()) != 0 {
+		t.Fail()
+	}
+	if point2.Y().Cmp(point2_.Y()) != 0 {
+		t.Fail()
+	}
+	point2__, _ := point1.Add(point1)
+	if point2.X().Cmp(point2__.X()) != 0 {
+		t.Fail()
+	}
+	if point2.Y().Cmp(point2__.Y()) != 0 {
+		t.Fail()
+	}
+	k := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
+	k_inv := modQ.ModInverse(k)
+	kpoint := crypto.ScalarBaseMult(tss.EC(), k)
+	k2basepoint := kpoint.ScalarMult(k_inv)
+	//比较point1和k2basepoint
+	if point1.X().Cmp(k2basepoint.X()) != 0 {
+		t.Fail()
+	}
+	if point1.Y().Cmp(k2basepoint.Y()) != 0 {
+		t.Fail()
+	}
+
+}
+
+func TestSig(t *testing.T) {
+	Q := tss.EC().Params().N
+	modQ := common.ModInt(tss.EC().Params().N)
+	x := common.GetRandomPositiveInt(rand.Reader, Q)
+	m := common.GetRandomPositiveInt(rand.Reader, Q)
+	k := common.GetRandomPositiveInt(rand.Reader, Q)
+	R := crypto.ScalarBaseMult(tss.EC(), k)
+	k_inv := modQ.ModInverse(k)
+	tmp := R.X()
+	r := modQ.Mul(tmp, big.NewInt(1))
+	xr := modQ.Mul(x, r)
+	xr_plus_m := modQ.Add(xr, m)
+	s := modQ.Mul(k_inv, xr_plus_m)
+
+	s_inv := modQ.ModInverse(s)
+	ms_inv := modQ.Mul(m, s_inv)
+	rs_inv := modQ.Mul(r, s_inv)
+	xrs_inv := modQ.Mul(x, rs_inv)
+	k_cal := modQ.Add(ms_inv, xrs_inv)
+	fmt.Print("k:", k, "\n")
+	fmt.Print("k_cal:", k_cal, "\n")
+	if k.Cmp(k_cal) == 0 {
+		fmt.Print("测试成功")
+	} else {
+		t.Fail()
+	}
+}
+func TestSig2(t *testing.T) {
+	Q := tss.EC().Params().N
+	modQ := common.ModInt(tss.EC().Params().N)
+	x := common.GetRandomPositiveInt(rand.Reader, Q)
+	m := common.GetRandomPositiveInt(rand.Reader, Q)
+	k := common.GetRandomPositiveInt(rand.Reader, Q)
+	R := crypto.ScalarBaseMult(tss.EC(), k)
+	k_inv := modQ.ModInverse(k)
+	tmp := R.X()
+	r := modQ.Mul(tmp, big.NewInt(1))
+	xr := modQ.Mul(x, r)
+	xr_plus_m := modQ.Add(xr, m)
+	s := modQ.Mul(k_inv, xr_plus_m)
+
+	s_inv := modQ.ModInverse(s)
+	ms_inv := modQ.Mul(m, s_inv)
+	rs_inv := modQ.Mul(r, s_inv)
+	xrs_inv := modQ.Mul(x, rs_inv)
+	k_cal := modQ.Add(ms_inv, xrs_inv)
+	if k.Cmp(k_cal) == 0 {
+		fmt.Print("整数验签成功\n")
+	} else {
+		t.Fail()
+	}
+	BigX := crypto.ScalarBaseMult(tss.EC(), x)
+	MS_INV := crypto.ScalarBaseMult(tss.EC(), ms_inv)
+	YRS := BigX.ScalarMult(rs_inv)
+	R_CAL, _ := MS_INV.Add(YRS)
+	r_cal := R_CAL.X()
+	if r.Cmp(r_cal) == 0 {
+		fmt.Print("点验签成功\n")
+	} else {
+		t.Fail()
+	}
+	if ECDSAVerify(r, s, m, BigX) {
+		fmt.Print("函数验签成功\n")
+	} else {
+		t.Fail()
 	}
 }

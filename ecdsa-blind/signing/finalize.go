@@ -12,6 +12,7 @@ import (
 	"math/big"
 
 	"github.com/bnb-chain/tss-lib/v2/common"
+	"github.com/bnb-chain/tss-lib/v2/ecdsa-blind/setup"
 	"github.com/bnb-chain/tss-lib/v2/tss"
 )
 
@@ -26,7 +27,10 @@ func (round *finalization) Start() *tss.Error {
 	if round.isRecipient {
 		modQ := common.ModInt(tss.EC().Params().N)
 		s := big.NewInt(0)
-		for _, data := range round.temp.DataPhase2 {
+		for i, data := range round.temp.DataPhase2 {
+			if i == round.recipientIndex {
+				continue
+			}
 			PaillierPK := data.PaillierPK
 			Ci := data.Ci[len(data.Ci)-1]
 			si, err := PaillierPK.Decrypt(Ci)
@@ -39,8 +43,8 @@ func (round *finalization) Start() *tss.Error {
 		s = modQ.Mul(s, round.temp.KiInverse)
 		p_inv := modQ.ModInverse(round.save.PrimeMask)
 		s = modQ.Mul(s, p_inv)
-		round.save.SignatureResult.S = s
-		round.save.SignatureResult.R = round.temp.r
+		
+		round.save.SignatureResult = &setup.Signature{S: s, R: round.temp.r}
 		round.end <- round.save
 	}
 	return nil

@@ -32,6 +32,7 @@ type (
 		Pi         *big.Int
 		Index      []byte
 		KeyIndexes []*IndexesWithPartyID
+		BigXi      *crypto.ECPoint
 	}
 
 	// Everything in LocalPartySaveData is saved locally to user's HD when done
