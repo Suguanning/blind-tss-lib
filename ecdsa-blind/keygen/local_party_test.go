@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/bnb-chain/tss-lib/v2/ecdsa-blind/setup"
 	"github.com/bnb-chain/tss-lib/v2/test"
@@ -42,12 +43,13 @@ func TestLocalParty(t *testing.T) {
 			break
 		}
 	}
-	localParties := make([]*LocalParty, 4)
+	localParties := make([]*LocalParty, testParttestPacipants)
 	for i, data := range localData {
 		params := tss.NewParameters(tss.EC(), ctx, sortedIDs[i], testParttestPacipants, testThreshold)
 		localParties[i] = NewLocalParty(params, data.Role == "Recipient", recipientIndex, &data, outCh, endCh).(*LocalParty)
 		go localParties[i].Start()
 	}
+	start := time.Now()
 
 	updater := test.SharedPartyUpdater
 	errCh := make(chan *tss.Error, 10)
@@ -88,7 +90,9 @@ func TestLocalParty(t *testing.T) {
 			tryWriteTestFixtureFile(t, index, *save)
 			saveCnt++
 			fmt.Print(save.Role, "节点", saveCnt, " 私钥分片：", save.LocalSecrets.Xi, "\n")
-			if saveCnt == 4 {
+			if saveCnt == testParttestPacipants {
+				diff := time.Since(start)
+				t.Log("\n-------------------------用时：", diff, "------------------------\n")
 				return
 			}
 		}

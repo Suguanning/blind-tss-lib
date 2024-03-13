@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/bnb-chain/tss-lib/v2/common"
 	"github.com/bnb-chain/tss-lib/v2/crypto"
@@ -279,7 +280,6 @@ func TestLocalParty(t *testing.T) {
 	//生成localParty
 	outCh := make(chan tss.Message, 10)
 	endCh := make(chan *setup.LocalPartySaveData, 10)
-
 	recipientIndex := 0
 	for i, data := range localData {
 		if data.Role == "Recipient" {
@@ -287,7 +287,8 @@ func TestLocalParty(t *testing.T) {
 			break
 		}
 	}
-	localParties := make([]*LocalParty, 4)
+
+	localParties := make([]*LocalParty, testParttestPacipants)
 	msgToSign := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N) //big.NewInt(100)
 	for i, data := range localData {
 		params := tss.NewParameters(tss.EC(), ctx, sortedIDs[i], testParttestPacipants, testThreshold)
@@ -300,6 +301,7 @@ func TestLocalParty(t *testing.T) {
 		localParties[i] = NewLocalParty(params, data.Role == "Recipient", recipientIndex, &data, m, outCh, endCh).(*LocalParty)
 		go localParties[i].Start()
 	}
+	start := time.Now()
 	updater := test.SharedPartyUpdater
 	errCh := make(chan *tss.Error, 10)
 	roundFinished := false
@@ -335,6 +337,8 @@ func TestLocalParty(t *testing.T) {
 				}
 			case save := <-endCh:
 				roundFinished = true
+				diff := time.Since(start)
+				t.Log("\n-------------------------用时：", diff, "------------------------\n")
 				fmt.Print("\n签名S:", save.SignatureResult.S, "\n")
 				fmt.Print("\n签名R:", save.SignatureResult.R, "\n")
 				s := save.SignatureResult.S
@@ -366,7 +370,7 @@ func TestLocalParty(t *testing.T) {
 					if C2_a.Cmp(C2_a_cal) != 0 {
 						fmt.Print("C3_a != C3_a_cal\n")
 					}
-
+					t.Fail()
 					return
 				}
 				break

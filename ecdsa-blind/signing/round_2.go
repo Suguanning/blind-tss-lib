@@ -8,6 +8,7 @@ package signing
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/bnb-chain/tss-lib/v2/common"
 	"github.com/bnb-chain/tss-lib/v2/crypto"
@@ -24,6 +25,7 @@ func (round *round2) Start() *tss.Error {
 	round.number = 2
 	round.started = true
 	round.resetOK()
+	fmt.Print("Signer", round.PartyID().Index, "开始round", round.number, "\n")
 	ks := round.save.Ks
 	if round.isRecipient {
 		round.ok[round.recipientIndex] = true

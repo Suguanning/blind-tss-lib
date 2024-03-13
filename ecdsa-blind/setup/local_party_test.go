@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"math/big"
 	"os"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/bnb-chain/tss-lib/v2/common"
 	"github.com/bnb-chain/tss-lib/v2/crypto/vss"
@@ -93,50 +95,49 @@ func TestLocalParty(t *testing.T) {
 	t.Log("测试开始")
 	modQ := common.ModInt(tss.EC().Params().N)
 	//生成公共参数
-	key1 := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
-	key2 := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
-	key3 := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
-	key4 := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
+	// key1 := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
+	// key2 := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
+	// key3 := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
+	// key4 := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
+	keys := make([]*big.Int, testParttestPacipants)
+	for i := 0; i < testParttestPacipants; i++ {
+		keys[i] = common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
+	}
 
 	// 生成PartyID
-	id1 := tss.NewPartyID("a", "moniker", key1)
-	id2 := tss.NewPartyID("b", "moniker", key2)
-	id3 := tss.NewPartyID("c", "moniker", key3)
-	id4 := tss.NewPartyID("d", "moniker", key4)
+	ids := make([]*tss.PartyID, testParttestPacipants)
+	for i := 0; i < testParttestPacipants; i++ {
+		ids[i] = tss.NewPartyID(strconv.FormatInt(int64(i), 10), "moniker", keys[i])
+	}
+
 	//构造paties数组，元素是id1，2，3，4
-	parties := make([]*tss.PartyID, 4)
-	parties[0] = id1
-	parties[1] = id2
-	parties[2] = id3
-	parties[3] = id4
+	parties := make([]*tss.PartyID, testParttestPacipants)
+	for i := 0; i < testParttestPacipants; i++ {
+		parties[i] = ids[i]
+	}
 	//构造SortedParties
 	sortedParties := tss.SortPartyIDs(parties)
 	//构造ctx
 	ctx := tss.NewPeerContext(sortedParties)
 	// 生成公共参数
-	params1 := tss.NewParameters(tss.EC(), ctx, id1, testParttestPacipants, testThreshold)
-	params2 := tss.NewParameters(tss.EC(), ctx, id2, testParttestPacipants, testThreshold)
-	params3 := tss.NewParameters(tss.EC(), ctx, id3, testParttestPacipants, testThreshold)
-	params4 := tss.NewParameters(tss.EC(), ctx, id4, testParttestPacipants, testThreshold)
+	params := make([]*tss.Parameters, testParttestPacipants)
+	for i := 0; i < testParttestPacipants; i++ {
+		params[i] = tss.NewParameters(tss.EC(), ctx, ids[i], testParttestPacipants, testThreshold)
+	}
 	//生成localParty
 	outCh := make(chan tss.Message, 10)
 	endCh := make(chan *LocalPartySaveData, 10)
-	localParty1 := NewLocalParty(params1, false, outCh, endCh).(*LocalParty)
-	localParty2 := NewLocalParty(params2, false, outCh, endCh).(*LocalParty)
-	localParty3 := NewLocalParty(params3, false, outCh, endCh).(*LocalParty)
-	localParty4 := NewLocalParty(params4, true, outCh, endCh).(*LocalParty)
-	//启动localParty
-	t.Log("LocalParties启动")
-	go localParty1.Start()
-	go localParty2.Start()
-	go localParty3.Start()
-	go localParty4.Start()
+	localParties := make([]*LocalParty, testParttestPacipants)
+	for i := 0; i < testParttestPacipants; i++ {
 
-	localParties := make([]*LocalParty, 4)
-	localParties[0] = localParty1
-	localParties[1] = localParty2
-	localParties[2] = localParty3
-	localParties[3] = localParty4
+		localParties[i] = NewLocalParty(params[i], i == 0, outCh, endCh).(*LocalParty)
+	}
+	//启动localParty
+	start := time.Now()
+	for i := 0; i < testParttestPacipants; i++ {
+		go localParties[i].Start()
+	}
+	t.Log("LocalParties启动")
 
 	updater := test.SharedPartyUpdater
 	errCh := make(chan *tss.Error, 10)
@@ -180,14 +181,20 @@ func TestLocalParty(t *testing.T) {
 			if save.Role == "Support" {
 				save.Role = "Recipient"
 			}
+			resultCnt++
+			if resultCnt == testParttestPacipants {
+				diff := time.Since(start)
+				t.Log("\n-------------------------用时：", diff, "------------------------\n")
+			}
 			index, err := save.OriginalIndex()
 			assert.NoErrorf(t, err, "should not be an error getting a party's index from save data")
 			tryWriteTestFixtureFile(t, index, *save)
 			t.Log("\n当前节点pi:", save.Pi, "\n当前节点计算结果p:", save.PrimeMask)
 			pMul = modQ.Mul(pMul, save.Pi)
 			result = save.PrimeMask
-			resultCnt++
-			if resultCnt == 4 {
+
+			if resultCnt == testParttestPacipants {
+
 				t.Log("\nresult:", result)
 				t.Log("\n")
 				t.Log("pMul:", pMul)
@@ -195,7 +202,8 @@ func TestLocalParty(t *testing.T) {
 				if pMul.Cmp(result) != 0 {
 					t.Error("测试失败, 还原p不等于正确值")
 				} else {
-					t.Log("测试通过")
+					t.Log("测试通过\n")
+
 				}
 				return
 			}

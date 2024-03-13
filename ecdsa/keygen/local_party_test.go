@@ -168,7 +168,6 @@ func TestBadMessageCulprits(t *testing.T) {
 
 func TestE2EConcurrentAndSaveFixtures(t *testing.T) {
 	setUp("info")
-
 	// tss.SetCurve(elliptic.P256())
 
 	threshold := testThreshold
