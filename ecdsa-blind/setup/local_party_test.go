@@ -436,3 +436,22 @@ func TestEccCmpExp(t *testing.T) {
 	fmt.Print("\nECC :", ECCSum)
 	fmt.Print("\nECC2 :", ECCSum2)
 }
+
+func TestEccCmpExp2(t *testing.T) {
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Minute)
+	_, pk, _ := paillier.GenerateKeyPair(ctx, rand.Reader, 2048, runtime.NumCPU()*2)
+
+	// randK2 := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
+	for i := 0; i < 10; i++ {
+		start := time.Now()
+		c, _ := pk.Encrypt(rand.Reader, big.NewInt(100))
+		diff := time.Since(start)
+		fmt.Print("\nexp:", diff)
+		c.Abs(c)
+		start = time.Now()
+		c, _ = pk.Encrypt(rand.Reader, big.NewInt(100))
+		diff = time.Since(start)
+		fmt.Print("\nexp:", diff)
+	}
+
+}
