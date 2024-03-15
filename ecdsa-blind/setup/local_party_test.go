@@ -2,15 +2,20 @@
 package setup
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"os"
+	"runtime"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/bnb-chain/tss-lib/v2/common"
+	"github.com/bnb-chain/tss-lib/v2/crypto"
+	paillier "github.com/bnb-chain/tss-lib/v2/crypto/paillier_modified"
 	"github.com/bnb-chain/tss-lib/v2/crypto/vss"
 	"github.com/bnb-chain/tss-lib/v2/test"
 	"github.com/bnb-chain/tss-lib/v2/tss"
@@ -18,8 +23,8 @@ import (
 )
 
 const (
-	testParttestPacipants = 4
-	testThreshold         = 2 // t>2才有效
+	testParttestPacipants = test.TestParticipants
+	testThreshold         = test.TestThreshold // t>2才有效
 )
 
 // 一个测试函数
@@ -94,11 +99,8 @@ func TestSetupAlgorithm(t *testing.T) {
 func TestLocalParty(t *testing.T) {
 	t.Log("测试开始")
 	modQ := common.ModInt(tss.EC().Params().N)
+	enableSave := false
 	//生成公共参数
-	// key1 := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
-	// key2 := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
-	// key3 := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
-	// key4 := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
 	keys := make([]*big.Int, testParttestPacipants)
 	for i := 0; i < testParttestPacipants; i++ {
 		keys[i] = common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
@@ -125,8 +127,8 @@ func TestLocalParty(t *testing.T) {
 		params[i] = tss.NewParameters(tss.EC(), ctx, ids[i], testParttestPacipants, testThreshold)
 	}
 	//生成localParty
-	outCh := make(chan tss.Message, 10)
-	endCh := make(chan *LocalPartySaveData, 10)
+	outCh := make(chan tss.Message, testThreshold*testThreshold)
+	endCh := make(chan *LocalPartySaveData, testThreshold*testThreshold)
 	localParties := make([]*LocalParty, testParttestPacipants)
 	for i := 0; i < testParttestPacipants; i++ {
 
@@ -184,12 +186,18 @@ func TestLocalParty(t *testing.T) {
 			resultCnt++
 			if resultCnt == testParttestPacipants {
 				diff := time.Since(start)
-				t.Log("\n-------------------------用时：", diff, "------------------------\n")
+				microsec := diff.Microseconds()
+				//microsec转float
+				microsecFloat := float64(microsec)
+				t.Log("\n-------------------------用时：", microsecFloat/1000, "--", diff, "------------------------\n")
 			}
 			index, err := save.OriginalIndex()
 			assert.NoErrorf(t, err, "should not be an error getting a party's index from save data")
-			tryWriteTestFixtureFile(t, index, *save)
-			t.Log("\n当前节点pi:", save.Pi, "\n当前节点计算结果p:", save.PrimeMask)
+			if enableSave {
+				tryWriteTestFixtureFile(t, index, *save)
+			}
+
+			//t.Log("\n当前节点pi:", save.Pi, "\n当前节点计算结果p:", save.PrimeMask)
 			pMul = modQ.Mul(pMul, save.Pi)
 			result = save.PrimeMask
 
@@ -237,4 +245,194 @@ func tryWriteTestFixtureFile(t *testing.T, index int, data LocalPartySaveData) {
 		t.Logf("Fixture file already exists for party %d; not re-creating: %s", index, fixtureFileName)
 	}
 	//
+}
+func MyE2E(t *testing.T, testParttestPacipants int, testThreshold int) time.Duration {
+	t.Log("测试开始")
+	modQ := common.ModInt(tss.EC().Params().N)
+	enableSave := false
+	//生成公共参数
+	keys := make([]*big.Int, testParttestPacipants)
+	for i := 0; i < testParttestPacipants; i++ {
+		keys[i] = common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
+	}
+
+	// 生成PartyID
+	ids := make([]*tss.PartyID, testParttestPacipants)
+	for i := 0; i < testParttestPacipants; i++ {
+		ids[i] = tss.NewPartyID(strconv.FormatInt(int64(i), 10), "moniker", keys[i])
+	}
+
+	//构造paties数组，元素是id1，2，3，4
+	parties := make([]*tss.PartyID, testParttestPacipants)
+	for i := 0; i < testParttestPacipants; i++ {
+		parties[i] = ids[i]
+	}
+	//构造SortedParties
+	sortedParties := tss.SortPartyIDs(parties)
+	//构造ctx
+	ctx := tss.NewPeerContext(sortedParties)
+	// 生成公共参数
+	params := make([]*tss.Parameters, testParttestPacipants)
+	for i := 0; i < testParttestPacipants; i++ {
+		params[i] = tss.NewParameters(tss.EC(), ctx, ids[i], testParttestPacipants, testThreshold)
+	}
+	//生成localParty
+	outCh := make(chan tss.Message, testThreshold*testThreshold)
+	endCh := make(chan *LocalPartySaveData, testThreshold*testThreshold)
+	localParties := make([]*LocalParty, testParttestPacipants)
+	for i := 0; i < testParttestPacipants; i++ {
+
+		localParties[i] = NewLocalParty(params[i], i == 0, outCh, endCh).(*LocalParty)
+	}
+	//启动localParty
+	start := time.Now()
+	for i := 0; i < testParttestPacipants; i++ {
+		go localParties[i].Start()
+	}
+	t.Log("LocalParties启动")
+
+	updater := test.SharedPartyUpdater
+	errCh := make(chan *tss.Error, 10)
+	pMul := big.NewInt(1)
+	result := big.NewInt(0)
+	resultCnt := 0
+	//处理消息
+	for {
+		select {
+		case msg := <-outCh:
+			dest := msg.GetTo()
+			if dest == nil {
+				//t.Log(msg.GetFrom().Id, "-broadcast")
+				for _, P := range localParties {
+					if P.PartyID().Id == msg.GetFrom().Id {
+						continue
+					}
+					go updater(P, msg, errCh)
+				}
+			} else { // point-to-point!
+				//t.Log(msg.GetFrom().Id, "->", dest[0].Id)
+				if dest[0].Index == msg.GetFrom().Index {
+					t.Fatalf("party %d tried to send a message to itself (%d)", dest[0].Index, msg.GetFrom().Index)
+					return 0
+				}
+				for _, party := range localParties {
+					if party.PartyID().Id == dest[0].Id {
+						bz, _, err := msg.WireBytes()
+						if err != nil {
+							t.Fatalf("failed to wirebytes: %s", err)
+						}
+						pMsg, err := tss.ParseWireMessage(bz, msg.GetFrom(), msg.IsBroadcast())
+
+						go party.Update(pMsg)
+						break
+					}
+				}
+				//go updater(localParties[dest[0].Index], msg, errCh)
+			}
+		case save := <-endCh:
+			if save.Role == "Support" {
+				save.Role = "Recipient"
+			}
+			resultCnt++
+			if resultCnt == testParttestPacipants {
+				diff := time.Since(start)
+				microsec := diff.Microseconds()
+				//microsec转float
+				microsecFloat := float64(microsec)
+				t.Log("\n-------------------------用时：", microsecFloat/1000, "--", diff, "------------------------\n")
+				return diff
+			}
+			index, err := save.OriginalIndex()
+			assert.NoErrorf(t, err, "should not be an error getting a party's index from save data")
+			if enableSave {
+				tryWriteTestFixtureFile(t, index, *save)
+			}
+
+			//t.Log("\n当前节点pi:", save.Pi, "\n当前节点计算结果p:", save.PrimeMask)
+			pMul = modQ.Mul(pMul, save.Pi)
+			result = save.PrimeMask
+
+			if resultCnt == testParttestPacipants {
+
+				t.Log("\nresult:", result)
+				t.Log("\n")
+				t.Log("pMul:", pMul)
+				t.Log("\n")
+				if pMul.Cmp(result) != 0 {
+					t.Error("测试失败, 还原p不等于正确值")
+				} else {
+					t.Log("测试通过\n")
+
+				}
+				return 0
+			}
+
+		}
+	}
+
+}
+func TestLocalPartyRepeat(t *testing.T) {
+	cnt := 7
+	t.Log("\n###################################################################\n")
+	all := 4
+	for all = 4; all <= 20; all += 4 {
+		threshold := all - 1
+		diffs := make([]float64, 0)
+		for i := 0; i < cnt; i++ {
+			diff := MyE2E(t, all, threshold)
+			microsec := diff.Microseconds()
+			ms := float64(microsec) / 1000
+			diffs = append(diffs, ms)
+		}
+		fmt.Print("\n---------Threshold", all, "-结果----------\n")
+		for _, d := range diffs {
+			fmt.Print(d, "\n")
+		}
+	}
+}
+
+func TestEccCmpExp(t *testing.T) {
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Minute)
+	_, pk, _ := paillier.GenerateKeyPair(ctx, rand.Reader, 2048, runtime.NumCPU()*2)
+	//比较椭圆曲线倍点运算
+	TestCnt := 1000
+	ExpDiffs := make([]int64, 0)
+	ECCDiffs := make([]int64, 0)
+	ECCDiffs2 := make([]int64, 0)
+	for i := 0; i < TestCnt; i++ {
+		randomK := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
+		randomK2 := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
+		start := time.Now()
+		pk.Encrypt(rand.Reader, randomK)
+		diff := time.Since(start).Microseconds()
+		ExpDiffs = append(ExpDiffs, diff)
+		start = time.Now()
+		BigK := crypto.ScalarBaseMult(tss.EC(), randomK)
+		diff = time.Since(start).Microseconds()
+		ECCDiffs = append(ECCDiffs, diff)
+		start = time.Now()
+		BigK2 := BigK.ScalarMult(randomK2)
+		diff = time.Since(start).Microseconds()
+		ECCDiffs2 = append(ECCDiffs2, diff)
+		BigK2.Add(BigK)
+	}
+	ExpSum := int64(0)
+	ECCSum := int64(0)
+	ECCSum2 := int64(0)
+	//对ExpDiffs，ECCDiffs，ECCDiffs2求平均值
+	for _, d := range ExpDiffs {
+		ExpSum += d
+	}
+
+	for _, d := range ECCDiffs {
+		ECCSum += d
+	}
+
+	for _, d := range ECCDiffs2 {
+		ECCSum2 += d
+	}
+
+	fmt.Print("\nEXP :", ExpSum)
+	fmt.Print("\nECC :", ECCSum)
+	fmt.Print("\nECC2 :", ECCSum2)
 }

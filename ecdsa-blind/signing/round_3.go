@@ -8,7 +8,6 @@ package signing
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/bnb-chain/tss-lib/v2/common"
 	paillier "github.com/bnb-chain/tss-lib/v2/crypto/paillier_modified"
@@ -23,7 +22,6 @@ func (round *round3) Start() *tss.Error {
 	round.number = 3
 	round.started = true
 	round.resetOK()
-	fmt.Print("Signer", round.PartyID().Index, "开始round", round.number, "\n")
 
 	if round.isRecipient {
 		round.ok[round.recipientIndex] = true
@@ -46,15 +44,15 @@ func (round *round3) Start() *tss.Error {
 			}
 			if Ci_a.Cmp(Ci_a2) != 0 {
 				//该数据的
-				fmt.Print("Signer", data.SignersToSend[data.SentCnt-1].Index, "的Ci_a != Ci_a2\n")
-				sentCnt := data.SentCnt - 1
-				for i, p := range data.SignersToSend {
-					if i == sentCnt {
-						fmt.Print(">Signer", p.Index, "\n")
-					} else {
-						fmt.Print("Signer", p.Index, "\n")
-					}
-				}
+				// fmt.Print("Signer", data.SignersToSend[data.SentCnt-1].Index, "的Ci_a != Ci_a2\n")
+				// sentCnt := data.SentCnt - 1
+				// for i, p := range data.SignersToSend {
+				// 	if i == sentCnt {
+				// 		//fmt.Print(">Signer", p.Index, "\n")
+				// 	} else {
+				// 		//fmt.Print("Signer", p.Index, "\n")
+				// 	}
+				// }
 				return round.WrapError(errors.New("Ci_a != Ci_a2"), data.SignersToSend[data.SentCnt-1])
 			}
 			Ci_kr_inv, err := paillier.HomoMult(round.temp.KiInverse, Ci)
@@ -94,7 +92,7 @@ func (round *round3) Update() (bool, *tss.Error) {
 			continue
 		}
 		if !round.isRecipient {
-			fmt.Print("Signer ", round.PartyID().Index, "接收到来自Recipient的r3msg1\n")
+			// fmt.Print("Signer ", round.PartyID().Index, "接收到来自Recipient的r3msg1\n")
 			recipientID := round.Parties().IDs()[round.recipientIndex]
 			r3msg1 := msg.Content().(*SignRound3Message1)
 
@@ -117,7 +115,7 @@ func (round *round3) Update() (bool, *tss.Error) {
 			round.temp.Phase2SentCnt++
 			round.out <- r3msg2
 			if round.temp.Phase2SentCnt > round.Threshold() {
-				fmt.Print("Signer ", round.PartyID().Index, "完成签名\n")
+				// fmt.Print("Signer ", round.PartyID().Index, "完成签名\n")
 				round.ok[j] = true
 			}
 		}
@@ -133,7 +131,7 @@ func (round *round3) Update() (bool, *tss.Error) {
 			continue
 		}
 		if round.isRecipient {
-			fmt.Print("Recipient ", round.PartyID().Index, "接收到来自Signer ", j, "的r3msg2\n")
+			// fmt.Print("Recipient ", round.PartyID().Index, "接收到来自Signer ", j, "的r3msg2\n")
 			var dataIndex int
 			for i, data := range round.temp.DataPhase2 {
 				if data == nil {
@@ -162,15 +160,15 @@ func (round *round3) Update() (bool, *tss.Error) {
 			}
 			//校验该数据
 			if Ci_a.Cmp(Ci_a2) != 0 {
-				fmt.Print("Signer", data.SignersToSend[data.SentCnt-1].Index, "的Ci_a != Ci_a2\n")
-				sentCnt := data.SentCnt - 1
-				for i, p := range data.SignersToSend {
-					if i == sentCnt {
-						fmt.Print(">Signer", p.Index, "\n")
-					} else {
-						fmt.Print("Signer", p.Index, "\n")
-					}
-				}
+				// fmt.Print("Signer", data.SignersToSend[data.SentCnt-1].Index, "的Ci_a != Ci_a2\n")
+				// sentCnt := data.SentCnt - 1
+				// for i, p := range data.SignersToSend {
+				// 	if i == sentCnt {
+				// 		fmt.Print(">Signer", p.Index, "\n")
+				// 	} else {
+				// 		fmt.Print("Signer", p.Index, "\n")
+				// 	}
+				// }
 				return false, round.WrapError(errors.New("Ci_a != Ci_a2"), data.SignersToSend[data.SentCnt-1])
 			}
 			//判断当前消息是否已经经过所有节点处理

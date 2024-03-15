@@ -122,7 +122,7 @@ func (p *LocalParty) StoreMessage(msg tss.ParsedMessage) (bool, *tss.Error) {
 	case *SURound2Message:
 		p.temp.suRound2Messages[fromPIdx] = msg
 	case *SURound3Message:
-		p.temp.suRound2Messages[fromPIdx] = msg
+		p.temp.suRound3Messages[fromPIdx] = msg
 	default: // unrecognised message, just ignore!
 		common.Logger.Warningf("unrecognised message ignored: %v", msg)
 		return false, nil

@@ -7,8 +7,11 @@
 package setup
 
 import (
+	"context"
 	"errors"
 	"math/big"
+	"runtime"
+	"time"
 
 	"github.com/bnb-chain/tss-lib/v2/common"
 	"github.com/bnb-chain/tss-lib/v2/crypto/vss"
@@ -58,7 +61,13 @@ func (round *round1) Start() *tss.Error {
 		}
 	} else {
 		//1.获取掩盖分片pi
-		pi := common.GetRandomPositiveInt(round.PartialKeyRand(), round.EC().Params().N)
+		concurrency := runtime.NumCPU()
+		ctx, _ := context.WithTimeout(context.Background(), 10*time.Minute)
+		sgps, err := common.GetRandomSafePrimesConcurrent(ctx, 1024, 1, concurrency, round.Rand())
+		if err != nil {
+			return nil
+		}
+		pi := sgps[0].SafePrime()
 		round.save.Pi = pi
 		//2.计算pi的分片
 		ids := round.Parties().IDs().Keys()

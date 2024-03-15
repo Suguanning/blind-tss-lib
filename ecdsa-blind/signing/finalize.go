@@ -8,7 +8,6 @@ package signing
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/bnb-chain/tss-lib/v2/common"
@@ -23,7 +22,7 @@ func (round *finalization) Start() *tss.Error {
 	round.number = round.number + 1
 	round.started = true
 	round.resetOK()
-	fmt.Print("Signer", round.PartyID().Index, "开始finalize", round.number, "\n")
+	// fmt.Print("Signer", round.PartyID().Index, "开始finalize", round.number, "\n")
 	if round.isRecipient {
 		modQ := common.ModInt(tss.EC().Params().N)
 		s := big.NewInt(0)
@@ -43,7 +42,7 @@ func (round *finalization) Start() *tss.Error {
 		s = modQ.Mul(s, round.temp.KiInverse)
 		p_inv := modQ.ModInverse(round.save.PrimeMask)
 		s = modQ.Mul(s, p_inv)
-		
+
 		round.save.SignatureResult = &setup.Signature{S: s, R: round.temp.r}
 		round.end <- round.save
 	}

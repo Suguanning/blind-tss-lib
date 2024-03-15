@@ -84,11 +84,11 @@ func GenerateKeyPair(ctx context.Context, rand io.Reader, modulusBitLen int, opt
 	{
 		tmp := new(big.Int)
 		for {
-			sgps, err := common.GetRandomSafePrimesConcurrent(ctx, modulusBitLen/2, 2, concurrency, rand)
+			sgps, err := common.GetRandomSafePrimesConcurrent(ctx, modulusBitLen/2, 1, concurrency, rand)
 			if err != nil {
 				return nil, nil, err
 			}
-			P, Q = sgps[0].SafePrime(), sgps[1].SafePrime()
+			P = sgps[0].SafePrime()
 			Q = tss.EC().Params().N
 			// KS-BTL-F-03: check that p-q is also very large in order to avoid square-root attacks
 			if tmp.Sub(P, Q).BitLen() >= (modulusBitLen/2)-pQBitLenDifference {

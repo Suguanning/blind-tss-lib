@@ -15,6 +15,7 @@ import (
 	"runtime"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/ipfs/go-log"
@@ -356,4 +357,114 @@ func fillBytes(x *big.Int, buf []byte) []byte {
 		}
 	}
 	return buf
+}
+func MyE2E(t *testing.T) time.Duration {
+	setUp("info")
+	threshold := testThreshold
+
+	// PHASE: load keygen fixtures
+	keys, signPIDs, err := keygen.LoadKeygenTestFixturesRandomSet(testThreshold+1, testParticipants)
+	assert.NoError(t, err, "should load keygen fixtures")
+	assert.Equal(t, testThreshold+1, len(keys))
+	assert.Equal(t, testThreshold+1, len(signPIDs))
+
+	// PHASE: signing
+	// use a shuffled selection of the list of parties for this test
+	p2pCtx := tss.NewPeerContext(signPIDs)
+	parties := make([]*LocalParty, 0, len(signPIDs))
+
+	errCh := make(chan *tss.Error, len(signPIDs))
+	outCh := make(chan tss.Message, len(signPIDs))
+	endCh := make(chan *common.SignatureData, len(signPIDs))
+
+	updater := test.SharedPartyUpdater
+	// init the parties
+	for i := 0; i < len(signPIDs); i++ {
+		params := tss.NewParameters(tss.S256(), p2pCtx, signPIDs[i], len(signPIDs), threshold)
+		P := NewLocalParty(big.NewInt(42), params, keys[i], outCh, endCh).(*LocalParty)
+		parties = append(parties, P)
+		go func(P *LocalParty) {
+			if err := P.Start(); err != nil {
+				errCh <- err
+			}
+		}(P)
+	}
+	start := time.Now()
+	var ended int32
+signing:
+	for {
+		fmt.Printf("ACTIVE GOROUTINES: %d\n", runtime.NumGoroutine())
+		select {
+		case err := <-errCh:
+			common.Logger.Errorf("Error: %s", err)
+			assert.FailNow(t, err.Error())
+			break signing
+
+		case msg := <-outCh:
+			dest := msg.GetTo()
+			if dest == nil {
+				for _, P := range parties {
+					if P.PartyID().Index == msg.GetFrom().Index {
+						continue
+					}
+					go updater(P, msg, errCh)
+				}
+			} else {
+				if dest[0].Index == msg.GetFrom().Index {
+					t.Fatalf("party %d tried to send a message to itself (%d)", dest[0].Index, msg.GetFrom().Index)
+				}
+				go updater(parties[dest[0].Index], msg, errCh)
+			}
+
+		case <-endCh:
+			atomic.AddInt32(&ended, 1)
+			if atomic.LoadInt32(&ended) == int32(len(signPIDs)) {
+				t.Logf("Done. Received signature data from %d participants", ended)
+				diff := time.Since(start)
+				return diff
+				R := parties[0].temp.bigR
+				r := parties[0].temp.rx
+				fmt.Printf("sign result: R(%s, %s), r=%s\n", R.X().String(), R.Y().String(), r.String())
+
+				modN := common.ModInt(tss.S256().Params().N)
+
+				// BEGIN check s correctness
+				sumS := big.NewInt(0)
+				for _, p := range parties {
+					sumS = modN.Add(sumS, p.temp.si)
+				}
+				fmt.Printf("S: %s\n", sumS.String())
+				// END check s correctness
+
+				// BEGIN ECDSA verify
+				pkX, pkY := keys[0].ECDSAPub.X(), keys[0].ECDSAPub.Y()
+				pk := ecdsa.PublicKey{
+					Curve: tss.EC(),
+					X:     pkX,
+					Y:     pkY,
+				}
+				ok := ecdsa.Verify(&pk, big.NewInt(42).Bytes(), R.X(), sumS)
+				assert.True(t, ok, "ecdsa verify must pass")
+				t.Log("ECDSA signing test done.")
+				// END ECDSA verify
+
+				break signing
+			}
+		}
+	}
+	return 0
+}
+func TestLocalPartyRepeat(t *testing.T) {
+	cnt := 7
+	t.Log("\n##################################################################\n")
+	diffs := make([]float64, 0)
+	for i := 0; i < cnt; i++ {
+		diff := MyE2E(t)
+		microsec := diff.Microseconds()
+		ms := float64(microsec) / 1000
+		diffs = append(diffs, ms)
+		time.Sleep(1 * time.Second)
+	}
+	t.Log(diffs)
+
 }

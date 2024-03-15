@@ -2,7 +2,6 @@ package keygen
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -14,12 +13,13 @@ import (
 )
 
 const (
-	testParttestPacipants = 4
-	testThreshold         = 2 // t>2才有效
+	testParttestPacipants = test.TestParticipants
+	testThreshold         = test.TestThreshold // t>2才有效
 )
 
 func TestLocalParty(t *testing.T) {
 	t.Log("测试开始")
+	enableSave := false
 	//modQ := common.ModInt(tss.EC().Params().N)
 	//生成公共参数
 
@@ -87,12 +87,17 @@ func TestLocalParty(t *testing.T) {
 		case save := <-endCh:
 			index, err := save.OriginalIndex()
 			assert.NoErrorf(t, err, "should not be an error getting a party's index from save data")
-			tryWriteTestFixtureFile(t, index, *save)
+			if enableSave {
+				tryWriteTestFixtureFile(t, index, *save)
+			}
 			saveCnt++
-			fmt.Print(save.Role, "节点", saveCnt, " 私钥分片：", save.LocalSecrets.Xi, "\n")
+			//fmt.Print(save.Role, "节点", saveCnt, " 私钥分片：", save.LocalSecrets.Xi, "\n")
 			if saveCnt == testParttestPacipants {
 				diff := time.Since(start)
-				t.Log("\n-------------------------用时：", diff, "------------------------\n")
+				microsec := diff.Microseconds()
+				//microsec转float
+				microsecFloat := float64(microsec)
+				t.Log("\n-------------------------用时：", microsecFloat/1000, "--", diff, "------------------------\n")
 				return
 			}
 		}
@@ -121,4 +126,11 @@ func tryWriteTestFixtureFile(t *testing.T, index int, data setup.LocalPartySaveD
 		t.Logf("Fixture file already exists for party %d; not re-creating: %s", index, fixtureFileName)
 	}
 	//
+}
+func TestLocalPartyRepeat(t *testing.T) {
+	cnt := 7
+	for i := 0; i < cnt; i++ {
+		TestLocalParty(t)
+		time.Sleep(1 * time.Second)
+	}
 }

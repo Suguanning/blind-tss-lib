@@ -41,7 +41,7 @@ type (
 )
 
 const (
-	defaultSafePrimeGenTimeout = 5 * time.Minute
+	defaultSafePrimeGenTimeout = 20 * time.Minute
 )
 
 // Exported, used in `tss` client
