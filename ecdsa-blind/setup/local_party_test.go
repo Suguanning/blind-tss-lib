@@ -97,7 +97,7 @@ func TestSetupAlgorithm(t *testing.T) {
 
 // 一个测试LocalParty的函数
 func TestLocalParty(t *testing.T) {
-	t.Log("测试开始")
+	fmt.Print("测试开始")
 	modQ := common.ModInt(tss.EC().Params().N)
 	enableSave := false
 	//生成公共参数
@@ -135,11 +135,11 @@ func TestLocalParty(t *testing.T) {
 		localParties[i] = NewLocalParty(params[i], i == 0, outCh, endCh).(*LocalParty)
 	}
 	//启动localParty
-	start := time.Now()
+	//start := time.Now()
 	for i := 0; i < testParttestPacipants; i++ {
 		go localParties[i].Start()
 	}
-	t.Log("LocalParties启动")
+	fmt.Print("LocalParties启动")
 
 	updater := test.SharedPartyUpdater
 	errCh := make(chan *tss.Error, 10)
@@ -152,7 +152,7 @@ func TestLocalParty(t *testing.T) {
 		case msg := <-outCh:
 			dest := msg.GetTo()
 			if dest == nil {
-				//t.Log(msg.GetFrom().Id, "-broadcast")
+				//fmt.Print(msg.GetFrom().Id, "-broadcast")
 				for _, P := range localParties {
 					if P.PartyID().Id == msg.GetFrom().Id {
 						continue
@@ -160,7 +160,7 @@ func TestLocalParty(t *testing.T) {
 					go updater(P, msg, errCh)
 				}
 			} else { // point-to-point!
-				//t.Log(msg.GetFrom().Id, "->", dest[0].Id)
+				//fmt.Print(msg.GetFrom().Id, "->", dest[0].Id)
 				if dest[0].Index == msg.GetFrom().Index {
 					t.Fatalf("party %d tried to send a message to itself (%d)", dest[0].Index, msg.GetFrom().Index)
 					return
@@ -185,32 +185,36 @@ func TestLocalParty(t *testing.T) {
 			}
 			resultCnt++
 			if resultCnt == testParttestPacipants {
-				diff := time.Since(start)
-				microsec := diff.Microseconds()
+				//diff := time.Since(start)
+				//microsec := diff.Microseconds()
 				//microsec转float
-				microsecFloat := float64(microsec)
-				t.Log("\n-------------------------用时：", microsecFloat/1000, "--", diff, "------------------------\n")
+				//microsecFloat := float64(microsec)
+				//fmt.Print("\n-------------------------用时：", microsecFloat/1000, "--", diff, "------------------------\n")
 			}
 			index, err := save.OriginalIndex()
 			assert.NoErrorf(t, err, "should not be an error getting a party's index from save data")
 			if enableSave {
 				tryWriteTestFixtureFile(t, index, *save)
 			}
+			if save.Pi.Cmp(big.NewInt(1)) == 0 {
+				fmt.Print("\n辅助签名者计算的掩盖因子p:", save.PrimeMask, "\n")
+			} else {
+				fmt.Print("\n签名者", resultCnt, "的掩盖因子分片pi\n:", save.Pi, "\n计算的掩盖因子p:", save.PrimeMask, "\n")
+			}
 
-			//t.Log("\n当前节点pi:", save.Pi, "\n当前节点计算结果p:", save.PrimeMask)
 			pMul = modQ.Mul(pMul, save.Pi)
 			result = save.PrimeMask
 
 			if resultCnt == testParttestPacipants {
 
-				t.Log("\nresult:", result)
-				t.Log("\n")
-				t.Log("pMul:", pMul)
-				t.Log("\n")
+				fmt.Print("\n通过算法计算的掩盖因子:", result)
+
+				fmt.Print("\n直接计算的掩盖因子    :", pMul)
+				fmt.Print("\n")
 				if pMul.Cmp(result) != 0 {
 					t.Error("测试失败, 还原p不等于正确值")
 				} else {
-					t.Log("测试通过\n")
+					fmt.Print("两者相等，测试通过\n")
 
 				}
 				return

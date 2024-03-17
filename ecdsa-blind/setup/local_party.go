@@ -29,18 +29,15 @@ type (
 		isSupport bool
 		temp      localTempData
 		data      LocalPartySaveData
-
 		// outbound messaging
 		out chan<- tss.Message
 		end chan<- *LocalPartySaveData
 	}
-
 	localMessageStore struct {
 		suRound1Messages,
 		suRound2Messages,
 		suRound3Messages []tss.ParsedMessage
 	}
-
 	localTempData struct {
 		localMessageStore
 		//blind-ecdsa

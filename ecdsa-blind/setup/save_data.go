@@ -43,13 +43,8 @@ type (
 		// original indexes (ki in signing preparation phase)
 		Ks []*big.Int
 
-		// n-tilde, h1, h2 for range proofs
-		NTildej, H1j, H2j []*big.Int
-
 		// public keys (Xj = uj*G for each Pj)
-		BigXj       []*crypto.ECPoint     // Xj
-		PaillierPKs []*paillier.PublicKey // pkj
-
+		BigXj []*crypto.ECPoint // Xj
 		// used for test assertions (may be discarded)
 		ECDSAPub *crypto.ECPoint // y
 		//blind-ecdsa
@@ -71,10 +66,7 @@ type (
 
 func NewLocalPartySaveData(threshold, partyCount int) (saveData LocalPartySaveData) {
 	saveData.Ks = make([]*big.Int, partyCount)
-	saveData.NTildej = make([]*big.Int, partyCount)
-	saveData.H1j, saveData.H2j = make([]*big.Int, partyCount), make([]*big.Int, partyCount)
 	saveData.BigXj = make([]*crypto.ECPoint, partyCount)
-	saveData.PaillierPKs = make([]*paillier.PublicKey, partyCount)
 	saveData.KeyIndexes = make([]*IndexesWithPartyID, 0)
 	saveData.RecipientPaillierSK = make([]*paillier.PrivateKey, threshold+1)
 	return
@@ -121,11 +113,7 @@ func BuildLocalSaveDataSubset(sourceData LocalPartySaveData, sortedIDs tss.Sorte
 			panic(errors.New("BuildLocalSaveDataSubset: unable to find a signer party in the local save data"))
 		}
 		newData.Ks[j] = sourceData.Ks[savedIdx]
-		newData.NTildej[j] = sourceData.NTildej[savedIdx]
-		newData.H1j[j] = sourceData.H1j[savedIdx]
-		newData.H2j[j] = sourceData.H2j[savedIdx]
 		newData.BigXj[j] = sourceData.BigXj[savedIdx]
-		newData.PaillierPKs[j] = sourceData.PaillierPKs[savedIdx]
 	}
 	return newData
 }

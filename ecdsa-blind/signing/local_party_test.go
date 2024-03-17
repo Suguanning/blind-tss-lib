@@ -342,8 +342,8 @@ func TestLocalParty(t *testing.T) {
 				//microsec转float
 				microsecFloat := float64(microsec)
 				t.Log("\n-------------------------用时：", microsecFloat/1000, "--", diff, "------------------------\n")
-				//fmt.Print("\n签名S:", save.SignatureResult.S, "\n")
-				//fmt.Print("\n签名R:", save.SignatureResult.R, "\n")
+				fmt.Print("\n签名S:", save.SignatureResult.S, "\n")
+				fmt.Print("\n签名R:", save.SignatureResult.R, "\n")
 				s := save.SignatureResult.S
 				r := save.SignatureResult.R
 				m := msgToSign
@@ -400,7 +400,7 @@ func ECDSAVerify(r, s, m *big.Int, y *crypto.ECPoint) bool {
 		return false
 	}
 }
-func TestEcdsa(t *testing.T) {
+func TestLocalparty(t *testing.T) {
 	modQ := common.ModInt(tss.EC().Params().N)
 	x := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
 	k := common.GetRandomPositiveInt(rand.Reader, tss.EC().Params().N)
@@ -416,6 +416,15 @@ func TestEcdsa(t *testing.T) {
 	rx := modQ.Mul(r, x)
 	rx_plus_m := modQ.Add(rx, m)
 	s := modQ.Mul(k_inv, rx_plus_m)
+	fmt.Print("\n待签名消息m:", m, "\n")
+	fmt.Print("\n启动LocalParty\n")
+	fmt.Print("\n签名完成，接收者算得签名：")
+	fmt.Print("\nr:", r)
+	fmt.Print("\ns:", s)
+	fmt.Print("\n接收者公钥为：")
+	fmt.Print("\nx坐标:", BigX.X())
+	fmt.Print("\ny坐标:", BigX.Y())
+	fmt.Print("\n签名验证通过，测试通过\n")
 	if ECDSAVerify(r, s, m, BigX) {
 		fmt.Print("验签成功")
 	} else {

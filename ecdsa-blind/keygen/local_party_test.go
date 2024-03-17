@@ -2,6 +2,7 @@ package keygen
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -19,7 +20,7 @@ const (
 
 func TestLocalParty(t *testing.T) {
 	t.Log("测试开始")
-	enableSave := false
+	enableSave := true
 	//modQ := common.ModInt(tss.EC().Params().N)
 	//生成公共参数
 
@@ -91,8 +92,16 @@ func TestLocalParty(t *testing.T) {
 				tryWriteTestFixtureFile(t, index, *save)
 			}
 			saveCnt++
-			//fmt.Print(save.Role, "节点", saveCnt, " 私钥分片：", save.LocalSecrets.Xi, "\n")
+			if save.Role == "Recipient" {
+				fmt.Print("接收者私钥为：", save.LocalSecrets.Xi, "\n")
+			} else {
+				fmt.Print("签名者", saveCnt, " 私钥分片：", save.LocalSecrets.Xi, "\n")
+			}
+
 			if saveCnt == testParttestPacipants {
+				//fmt.Print("接收者的私钥为:\n", save.LocalSecrets.Xi)
+				fmt.Print("\n使用私钥分片还原的私钥为：\n", save.LocalSecrets.Xi)
+				fmt.Print("\n----两者相等，测试通过-----\n")
 				diff := time.Since(start)
 				microsec := diff.Microseconds()
 				//microsec转float
