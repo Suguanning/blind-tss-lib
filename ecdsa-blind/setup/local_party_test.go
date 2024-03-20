@@ -440,6 +440,7 @@ func TestEccCmpExp(t *testing.T) {
 	fmt.Print("\nECC :", ECCSum)
 	fmt.Print("\nECC2 :", ECCSum2)
 }
+<<<<<<< Updated upstream
 
 func TestEccCmpExp2(t *testing.T) {
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Minute)
@@ -459,3 +460,9 @@ func TestEccCmpExp2(t *testing.T) {
 	}
 
 }
+=======
+func TestEccCmpExp2(t *testing.T) {
+	
+
+}
+>>>>>>> Stashed changes
